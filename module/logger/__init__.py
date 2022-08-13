@@ -1,7 +1,6 @@
 from library.orm.extra import mysql_db_pool
 from library.orm.table import Logger
 from graia.ariadne.event.message import GroupMessage
-from graia.ariadne.app import Ariadne
 from graia.ariadne.message.chain import MessageChain
 from graia.saya import Channel
 from graia.saya.builtins.broadcast.schema import ListenerSchema

@@ -5,7 +5,6 @@ from graia.saya import Channel
 from graia.saya.builtins.broadcast.schema import ListenerSchema
 from graia.ariadne.model import Group
 from graia.ariadne.message.element import At,Image
-import httpx
 from library.Bot import bot
 from graia.ariadne.message.parser.twilight import (
     Twilight,
@@ -25,19 +24,19 @@ petpeter.description("生成表情包动图")
 BOT = bot()
 LAST_QEQUEST = datetime.datetime.now()
 async def get_simple_data(func,**data):
+    session = Ariadne.service.client_session
     ROOT_URL = "https://api.s1.hanwuss.com/et/petpeter/"
     url = ROOT_URL + func
     for i in BOT.weijingci:
         for k in data:
             if i in str(data[k]):return (3,"生成暂停，您的参数含有违禁词")
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, params=data,timeout=120)
-            if response.status_code != 200:  return (1,None)
+        async with session.get(url, params=data,timeout=120) as response:
+            if response.status!= 200:  return (1,None)
             try:
                 if response.headers['X-Scf-Message'] == 'MemoryLimitReached':return (2,"生成失败，进程内存超额")
             except: pass
-            return (0,response.content)
+            return (0,await response.read())
     except: return (1,"获取数据错误")
 
 async def limit_check():

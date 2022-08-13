@@ -9,7 +9,7 @@ from graia.ariadne.message.parser.twilight import (
     MatchResult,
     WildcardMatch,
 )
-import re,httpx,json
+import re
 from graia.saya import  Channel
 from graia.saya.builtins.broadcast import ListenerSchema
 import random
@@ -51,32 +51,31 @@ class ObjectDict(object):
             
 
 async def getdata(func:str,args):
+    session = Ariadne.service.client_session
     ROOT_URL = "https://api.lofter.com/"
     url = ROOT_URL + func
     for i in BOT.weijingci:
         for k in args:
             if i in str(args[k]):return (3,"搜索暂停，您的参数含有违禁词","")
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, params=args,timeout=120)
-            if response.status_code != 200:  return (1,None,"")
-            return (0,ObjectDict(json.loads(response.text)),json.loads(response.text))
+        async with session.get(url,  params=args ,timeout=120) as response:
+            if response.status != 200:  return (1,None,"")
+            a = await response.json()
+            return (0,ObjectDict(a),a)
     except: return (1,"获取数据错误","")
-    
-async def filter_tags(htmlstr):
-    return str(pattern.search(htmlstr.strip()).group())
+
+
+async def filter_tags(htmlstr):return str(pattern.search(htmlstr.strip()).group())
 
     
-    
-async def getHighHeatRandomPic(event,**args):
+async def getHighHeatRandomPic(event:GroupMessage,**args):
     if not args:func = "recommend/exploreRecom.json"
     else:func = "recommend/tagRecom.json"
-    code,data,raw = await getdata(func,args)
-    if code :
-        return MessageChain(
-            At(event.sender.id),
-            "没找到相关内容，等会再试试吧"
-            )
+    code,data,_= await getdata(func,args)
+    if code :return MessageChain(
+        At(event.sender.id),
+        "没找到相关内容，等会再试试吧"
+        )
     ret=random.choice(data.data.list)
     ret.postData.postView.digest = ret.postData.postView.digest.replace('<p>' , '')
     ret.postData.postView.digest = await filter_tags(ret.postData.postView.digest)

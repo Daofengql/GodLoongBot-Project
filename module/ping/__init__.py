@@ -16,7 +16,7 @@ from graia.ariadne.message.parser.twilight import (
     RegexMatch,
 )
 import asyncio
-import socket,httpx
+import socket
 from ping3 import ping as p
 import json,re
 
@@ -39,12 +39,11 @@ def pings(args):
             
             
 async def ipinfo(args):
+    session = Ariadne.service.client_session
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36"}
     url = f"https://api.s1.hanwuss.com/tools/net/ip/address?ip={args}"
-    try:
-        async with httpx.AsyncClient() as client:   response1 = await client.get(url, headers = headers)
-    except:  return {"code":0,"Msg":"查询失败"}
-    else:  return {"code":1,"Msg":"成功","data":json.loads(response1.text)["info"]}
+    async with session.get(url, headers = headers,timeout=120) as response1:
+        return {"code":1,"Msg":"成功","data":await response1.json()["info"]}
 
 @ping.use(
     ListenerSchema(

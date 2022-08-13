@@ -34,10 +34,9 @@ async def limit_check():
     return False
     
 
-async def getvoice(func):
-    audio_bytes = await silkcoder.async_encode(f"{PATH}{func}/{random.choice(os.listdir(PATH+func+'/'))}", ios_adaptive=True)
-    return audio_bytes
-        
+async def getvoice(func): return await silkcoder.async_encode(f"{PATH}{func}/{random.choice(os.listdir(PATH+func+'/'))}", ios_adaptive=True)
+
+  
 @reply.use(
     ListenerSchema(
         listening_events=[GroupMessage],

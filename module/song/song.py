@@ -1,6 +1,4 @@
-import json
-
-import httpx
+from graia.ariadne import Ariadne
 from graia.ariadne.message.chain import MessageChain
 from graia.ariadne.message.element import At, MusicShareKind
 
@@ -23,16 +21,15 @@ class ObjectDict(object):
 
 
 async def get_netease(name: str, app, group, event):
+    session = Ariadne.service.client_session
     try:
         args = {"name": name, "pglimit": 10}
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "https://api.s1.hanwuss.com/tools/et/song/netease",
-                params=args,
-                timeout=120,
-            )
-            if response.status_code != 200:  return None
-        re = ObjectDict(json.loads(response.text))
+        async with session.get(
+            "https://api.s1.hanwuss.com/tools/et/song/netease",
+            params=args ,
+            timeout=120) as response:
+            if response.status != 200:  return None
+        re = ObjectDict(await response.json())
         l = []
         for song in re.result.songs:
             l.append(
@@ -57,18 +54,16 @@ async def get_netease(name: str, app, group, event):
 
 async def netease(l, select):
     song = l[select - 1]
-    
+    session = Ariadne.service.client_session
     try:
         args = {"id": song["id"]}
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "https://api.s1.hanwuss.com/tools/et/song/netease",
-                params=args,
-                timeout=120,
-            )
-            print(json.loads(response.text))
-            if response.status_code != 200:  return None
-            re = ObjectDict(json.loads(response.text))
+        async with session.get(
+            "https://api.s1.hanwuss.com/tools/et/song/netease",
+            params=args,
+            timeout=120,
+            ) as response:
+            if response.status != 200:  return None
+            re = ObjectDict(await response.json())
         r = {
             "brief": f"{song['name']}--{song['author']}",
             "jumpUrl": f"https://music.163.com/song?id={song['id']}",
@@ -83,16 +78,16 @@ async def netease(l, select):
     
     
 async def get_kugomusic(name,app, group, event):
+    session = Ariadne.service.client_session
     try:
         args = {"name": name, "pglimit": 10}
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "https://api.s1.hanwuss.com/tools/et/song/kugou",
-                params=args,
-                timeout=120,
-            )
-            if response.status_code != 200:  return None
-        re = ObjectDict(json.loads(response.text))
+        async with session.get(
+            "https://api.s1.hanwuss.com/tools/et/song/kugou",
+            params=args,
+            timeout=120,
+            ) as response:
+            if response.status != 200:  return None
+        re = ObjectDict(await response.json())
         l = []
         for song in re.result.info:
             l.append(
@@ -117,17 +112,16 @@ async def get_kugomusic(name,app, group, event):
     
 async def kugomusic(l, select):
     song = l[select - 1]
-    
+    session = Ariadne.service.client_session
     try:
         args = {"hash": song["id"]}
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "https://api.s1.hanwuss.com/tools/et/song/kugou",
-                params=args,
-                timeout=120,
-            )
-            if response.status_code != 200:  return None
-        re = ObjectDict(json.loads(response.text))
+        async with session.get(
+            "https://api.s1.hanwuss.com/tools/et/song/kugou",
+            params=args,
+            timeout=120,
+            ) as response:
+            if response.status != 200:  return None
+        re = ObjectDict(await response.json())
         
         r = {
             "brief": f"{song['name']}--{song['author']}",
