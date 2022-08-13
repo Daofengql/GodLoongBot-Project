@@ -4,7 +4,7 @@
     "num": 0,
     "account": 1804385478,
     "env": "poetry",
-    "host": "http://127.0.0.1:8081/",
+    "host": "https://bot.loongapi.com/mirai/",
     "verify_key": "INITKEYgd7UqKlB",
     "dev_group": [
         438991075
@@ -15,7 +15,7 @@
     "proxy": null,
     "log_retention": 7,
     "db": {
-        "link": "mysql+aiomysql://robot:DZjcEj8KbRwJnzpR@127.0.0.1:3306/robot?charset=utf8",
+        "link": "mysql+aiomysql://root:root@127.0.0.1:3306/robot?charset=utf8",
         "config": {
             "disable_pooling": false,
             "pool_size": 40,
@@ -30,10 +30,10 @@
         "modules": {}
     },
     "path": {
-        "root": "/www/robot/bot",
-        "data": "/www/robot/bot/data",
-        "config": "/www/robot/bot/data/config",
-        "shared": "/www/robot/bot/data/shared"
+        "root": "C:\\Users\\Administrator\\Desktop\\god-loong-bot-project",
+        "data": "C:\\Users\\Administrator\\Desktop\\god-loong-bot-project\\data",
+        "config": "C:\\Users\\Administrator\\Desktop\\god-loong-bot-project\\data\\config",
+        "shared": "C:\\Users\\Administrator\\Desktop\\god-loong-bot-project\\data\\shared"
     },
     "hub": {
         "enabled": false,
