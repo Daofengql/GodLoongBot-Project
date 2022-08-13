@@ -3,8 +3,6 @@ from PIL import Image, ImageFont, ImageDraw
 import re
 from pathlib import Path
 import string
-import os
-
 
 ttfname ="HarmonyOS_Sans/HarmonyOS_Sans_SC/HarmonyOS_Sans_SC_Medium.ttf"
 

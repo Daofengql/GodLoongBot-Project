@@ -1,30 +1,14 @@
 from library.orm.extra import mysql_db_pool
 from library.orm.table import Logger
-from library.config import config
-from graia.ariadne.event.message import GroupMessage, FriendMessage
+from graia.ariadne.event.message import GroupMessage
 from graia.ariadne.app import Ariadne
 from graia.ariadne.message.chain import MessageChain
 from graia.saya import Channel
 from graia.saya.builtins.broadcast.schema import ListenerSchema
 from graia.ariadne.model import Group
-from graia.ariadne.message.element import At,Image,Face,Source
-import httpx
-from graia.ariadne.message.parser.twilight import (
-    Twilight,
-    UnionMatch,
-    MatchResult,
-    ArgumentMatch,
-    ArgResult,
-    WildcardMatch,
-    ElementMatch,
-    ElementResult,
-    ParamMatch,
-    RegexMatch
-)
+from graia.ariadne.message.element import Image,Source
 import datetime
-from sqlalchemy import select,insert
-import asyncio
-import json
+from sqlalchemy import insert
 
 
 logger = Channel.current()
@@ -41,7 +25,6 @@ db = mysql_db_pool()
         )
     )
 async def sign(
-    app: Ariadne,
     message: MessageChain,
     event:GroupMessage,
     group: Group):
@@ -50,7 +33,6 @@ async def sign(
         for i in message.get(Image):
             image_urls.append(i.url)
     msgid = event.message_chain.get_first(Source).id
-    msgtime = event.message_chain.get_first(Source).time
     dbsession = await db.get_db_session()
     
     try:

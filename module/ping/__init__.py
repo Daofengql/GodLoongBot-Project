@@ -6,28 +6,19 @@ from graia.ariadne.message.chain import MessageChain
 from graia.saya import Channel
 from graia.saya.builtins.broadcast.schema import ListenerSchema
 from graia.ariadne.message.parser.base import MatchRegex
-from graia.ariadne.event.lifecycle import ApplicationLaunched
-from graia.ariadne.event.message import GroupMessage, FriendMessage, MessageEvent
-from graia.broadcast.interrupt import Waiter, InterruptControl
-from graia.ariadne.message.element import At, Plain, Image, Forward, ForwardNode
+from graia.ariadne.event.message import GroupMessage
+from graia.ariadne.message.element import At, Image
 from graia.ariadne.message.parser.twilight import (
     Twilight,
     UnionMatch,
     MatchResult,
-    ArgumentMatch,
-    ArgResult,
     WildcardMatch,
     RegexMatch,
-    ParamMatch,
 )
 import asyncio
-import random
-from datetime import datetime
 import socket,httpx
 from ping3 import ping as p
-
 import json,re
-import aiohttp
 
 ping = Channel.current()
 
@@ -127,8 +118,6 @@ async def tcpingip(app: Ariadne,message: MessageChain,event:GroupMessage,group: 
     )
 )
 async def dnsrecord(app: Ariadne,
-    message: MessageChain,
-    event:GroupMessage,
     group: Group, 
     domain: MatchResult, 
     ip: MatchResult

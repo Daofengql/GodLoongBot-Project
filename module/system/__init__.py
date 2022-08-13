@@ -1,4 +1,4 @@
-from graia.ariadne.event.message import GroupMessage, FriendMessage
+from graia.ariadne.event.message import GroupMessage
 from graia.ariadne.app import Ariadne
 from graia.ariadne.message.chain import MessageChain
 from graia.saya import Channel
@@ -7,14 +7,12 @@ from graia.ariadne.message.parser.base import MatchRegex
 from graia.ariadne.model import Group
 from graia.ariadne.message.element import At,Image
 import httpx
-from library.Bot import bot
 import os
 import asyncio
 from library.TextToImg import TextToImage
-import urllib.parse,requests,os,uuid,socket,time
+import os,socket,time
 import psutil ,asyncio
-import json,uuid
-from pathlib import Path
+import json
 import time as te
 from library.config import config
 
@@ -153,7 +151,6 @@ async def getdata():
     )
 async def runcmd(
     app: Ariadne,
-    message: MessageChain,
     event:GroupMessage,
     group: Group):
     if event.sender.id not in config.owners:
