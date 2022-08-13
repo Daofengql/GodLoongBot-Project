@@ -1,5 +1,5 @@
 **/__pycache__
 config.json
-.venv
-poetry.lock
-log
+.venv/
+/poetry.lock
+log/
