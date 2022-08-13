@@ -1,0 +1,15 @@
+{
+    "name": "戳一戳",
+    "pack": "module.Nudge",
+    "version": "Unknown",
+    "author": [
+        "daofengql"
+    ],
+    "pypi": false,
+    "category": "miscellaneous",
+    "description": "戳一戳获取帮助",
+    "dependency": null,
+    "loaded": true,
+    "override_default": null,
+    "override_switch": null
+}

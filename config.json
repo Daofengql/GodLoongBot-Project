@@ -1,0 +1,45 @@
+{
+    "name": "神麟",
+    "docs": "https://daofengql.gitee.io/godloongbot/",
+    "num": 0,
+    "account": 1804385478,
+    "env": "poetry",
+    "host": "http://127.0.0.1:8081/",
+    "verify_key": "INITKEYgd7UqKlB",
+    "dev_group": [
+        438991075
+    ],
+    "owners": [
+        2970290021
+    ],
+    "proxy": null,
+    "log_retention": 7,
+    "db": {
+        "link": "mysql+aiomysql://robot:DZjcEj8KbRwJnzpR@127.0.0.1:3306/robot?charset=utf8",
+        "config": {
+            "disable_pooling": false,
+            "pool_size": 40,
+            "max_overflow": 60
+        }
+    },
+    "func": {
+        "default": false,
+        "notice": true,
+        "notice_msg": "模块 {module.name} 已关闭，请联系管理员开启",
+        "prefix": ".",
+        "modules": {}
+    },
+    "path": {
+        "root": "/www/robot/bot",
+        "data": "/www/robot/bot/data",
+        "config": "/www/robot/bot/data/config",
+        "shared": "/www/robot/bot/data/shared"
+    },
+    "hub": {
+        "enabled": false,
+        "url": "https://api.nullqwertyuiop.me/project-null",
+        "secret": "",
+        "meta": "/metadata",
+        "metadata": null
+    }
+}

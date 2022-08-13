@@ -1,0 +1,17 @@
+{
+    "module.hub_service": {
+        "438991075": true
+    },
+    "module.Nudge": {
+        "438991075": true
+    },
+    "module.petpeter": {
+        "438991075": true
+    },
+    "module.ping": {
+        "438991075": true
+    },
+    "module.system": {
+        "438991075": false
+    }
+}
