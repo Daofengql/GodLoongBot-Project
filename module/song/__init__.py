@@ -58,7 +58,6 @@ async def limit_check():
 )
 async def diange(
     app: Ariadne,
-    message: MessageChain,
     group: Group,
     event: GroupMessage,
     func: MatchResult,
