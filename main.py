@@ -31,4 +31,3 @@ saya.install_behaviours(
 if __name__ == """__main__""":
     from module import modules
     modules.require_modules(saya, log_exception=False)
-    ariadne.launch_blocking()

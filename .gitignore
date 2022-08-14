@@ -3,3 +3,4 @@ config.json
 .venv/
 /poetry.lock
 log/
+.vscode/
