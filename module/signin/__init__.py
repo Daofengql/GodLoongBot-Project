@@ -50,12 +50,6 @@ async def auth(
     app: Ariadne,
     event:GroupMessage,
     group: Group):
-    await app.send_message(
-        group,
-        MessageChain(
-            f"来了来了,{config.name}给你登记下，客官稍等"
-        )
-    )
     dbsession = await db.get_db_session()
     try:
         async with dbsession() as session:
@@ -150,13 +144,17 @@ async def geimage(qq,name,coin,days,minyan):
     )
 async def sign(
     app: Ariadne,
-    message: MessageChain,
     event:GroupMessage,
     group: Group):
     dbsession = await db.get_db_session()
     minyan= await get_minyan()
     name = await app.get_user_profile(event.sender.id)
-    
+    await app.send_message(
+        group,
+        MessageChain(
+            f"来了来了,{config.name}给你登记下，客官稍等"
+        )
+    )
     
     try:
         async with dbsession() as session:
