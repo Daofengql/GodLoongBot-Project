@@ -31,7 +31,7 @@ stellairs.author("道锋潜鳞")
 stellairs.description("模拟stellaris，舰队挑战")
 
 db = mysql_db_pool()
-
+PATH = os.path.dirname(__file__)+"/assets/"
 
 SIGNING = []
 
@@ -54,8 +54,8 @@ async def genSignPic(
     imageio = BytesIO()
     detail = await event.sender.get_profile()
     column = Column(Banner(banner), Header(header,""))
-    box1 = GeneralBox()
-    box2 = GeneralBox()
+    box1 = MenuBox()
+    box2 = MenuBox()
     box3 = GeneralBox()
     imageio.write(await event.sender.get_avatar())
     imageio.seek(0)
@@ -68,10 +68,10 @@ async def genSignPic(
     box2.add(f"Age:{detail.age}","")
     box2.add(f"Sex:{detail.sex}","")
     
-    box3.add(f"麟币(能量币)：{coin}","能量币可用于兑换合金")
+    box3.add(f"麟币(能量币)：{coin}","能量币可用于兑换合金",icon=PImage.open(PATH+"Energy.png"))
     if ev:box3.add(f"麟币(能量币)事件：",ev)
-    box3.add(f"合金：{iron}","合金可用于购买舰船")
-    box3.add(f"凝聚力：{unity}","您在本群的威望")
+    box3.add(f"合金：{iron}","合金可用于购买舰船",icon=PImage.open(PATH+"Alloys.png"))
+    box3.add(f"凝聚力：{unity}","您在本群的威望",icon=PImage.open(PATH+"Unity.png"))
     if isnew:box3.add(
         f"""
 I solemny swear \n
