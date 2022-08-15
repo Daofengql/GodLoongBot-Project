@@ -93,8 +93,9 @@ class ShipGroup(Base):
 
     id = Column(BIGINT(20), primary_key=True, autoincrement=True, nullable=False, comment='舰队id')
     nickname = Column(String(30, 'utf8_unicode_ci'), primary_key=True, nullable=False, comment='舰队名')
+    group = Column(BIGINT(20), primary_key=True, nullable=False, comment='所属群聊')
 
-
+    
 class User(Base):
     __tablename__ = 'users'
 
