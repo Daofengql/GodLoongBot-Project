@@ -8,5 +8,10 @@ MINYAN = [
     "你我言语，从善如流，不是吗？",
     "Only in battle can the true mettle of any sentient organism be measured."
     "毁灭浩劫将至!脱缰的战争猛犬在凶猛嗥叫!"
+    "一切伟大之作都需要牺牲来铸就",
+    "扰乱此世，我们上升到彼世",
+    "我们的舰队将遮天蔽日，无论天上有多少个太阳",
+    "横扫千星",
+    "荣光、荣耀和残忍，这永远都是硬通货"
     ]
 
