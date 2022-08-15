@@ -22,7 +22,7 @@ import random
 import datetime
 import PIL.Image as PImage
 from io import BytesIO
-
+from .texts import *
 
 stellairs = Channel.current()
 
@@ -34,8 +34,6 @@ db = mysql_db_pool()
 PATH = os.path.dirname(__file__)+"/assets/"
 
 SIGNING = []
-
-MINYAN = ["我们称之为高效！"]
 
 energy_range = [100,500]
 
