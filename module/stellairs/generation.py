@@ -7,6 +7,19 @@ from io import BytesIO
 
 PATH = os.path.dirname(__file__)+"/assets/"
 
+NEW_USER = """
+I solemny swear \n
+我在这里庄严起誓\n
+To devote my life end of realease in defense of the united nations of earth. \n
+我此生将不遗余力，用以保护地球联合国\n
+To defend the Constitution of the man and to further the universal rights of all sentient life .\n
+保护人类火种的延续，以及星空所有有知生命\n
+From the depths of the Pacific ，to the edge of the Galaxy.\n
+无论从太平洋深处，还是到银河系的边缘\n
+For as long as I shall live.\n
+至死方休！！
+"""
+
 #生成信息图片
 async def genSignPic(
     event:GroupMessage,
@@ -43,18 +56,7 @@ async def genSignPic(
     box3.add(f"合金：{iron}","合金可用于购买舰船",icon=PImage.open(PATH+"coins/Alloys.png"))
     box3.add(f"凝聚力：{unity}","您在本群的威望 默认为100",icon=PImage.open(PATH+"coins/Unity.png"))
     if isnew:box4.add(
-        f"""
-I solemny swear \n
-我在这里庄严起誓\n
-To devote my life end of realease in defense of the united nations of earth. \n
-我此生将不遗余力，用以保护地球联合国\n
-To defend the Constitution of the man and to further the universal rights of all sentient life .\n
-保护人类火种的延续，以及星空所有有知生命\n
-From the depths of the Pacific ，to the edge of the Galaxy.\n
-无论从太平洋深处，还是到银河系的边缘\n
-For as long as I shall live.\n
-至死方休！！
-""","")
+        NEW_USER,"")
     column.add(box1,box2,box3,box4)
     mock = OneUIMock(column)
     rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))

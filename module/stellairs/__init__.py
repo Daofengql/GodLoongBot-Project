@@ -38,11 +38,8 @@ SIGNING = []
 
 energy_range = [100,500]
 
-
 #检查时间
-async def checktime(result:User)->bool:
-    nowtime = datetime.datetime.strptime(datetime.datetime.now().strftime("%Y-%m-%d 00:00:00"),"%Y-%m-%d %H:%M:%S")
-    return (nowtime - result.lasttime)> datetime.timedelta(seconds=4)
+async def checktime(result:User)->bool:return (datetime.datetime.strptime(datetime.datetime.now().strftime("%Y-%m-%d 00:00:00"),"%Y-%m-%d %H:%M:%S") - result.lasttime)> datetime.timedelta(seconds=4)
 
 #签到
 async def DailySignin(

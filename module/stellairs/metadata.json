@@ -1,9 +1,9 @@
 {
     "name": "stellairs",
     "pack": "module.stellairs",
-    "version": "Unknown",
+    "version": "1.0",
     "author": [
-        "Unknown"
+        "Daofengql"
     ],
     "pypi": false,
     "category": "miscellaneous",
