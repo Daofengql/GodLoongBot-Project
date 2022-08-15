@@ -1,4 +1,5 @@
 from graia.ariadne.app import Ariadne
+from library.config import config
 from graia.ariadne.connection.config import (
     HttpClientConfig,
     WebsocketClientConfig,

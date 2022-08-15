@@ -1,0 +1,15 @@
+{
+    "name": "stellairs",
+    "pack": "module.stellairs",
+    "version": "Unknown",
+    "author": [
+        "Unknown"
+    ],
+    "pypi": false,
+    "category": "miscellaneous",
+    "description": "",
+    "dependency": null,
+    "loaded": true,
+    "override_default": null,
+    "override_switch": null
+}

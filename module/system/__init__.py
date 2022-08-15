@@ -5,7 +5,7 @@ from graia.saya import Channel
 from graia.saya.builtins.broadcast.schema import ListenerSchema
 from graia.ariadne.message.parser.base import MatchRegex
 from graia.ariadne.model import Group
-from graia.ariadne.message.element import At,Image
+from graia.ariadne.message.element import At,Image,Source
 import httpx
 import os
 import asyncio
@@ -172,3 +172,48 @@ async def runcmd(
             MessageChain(At(event.sender.id),f"系统命令执行错误了")
          )
         return
+
+@cmd.use(
+    ListenerSchema(
+        listening_events=[GroupMessage],
+        decorators=[MatchRegex(regex=r"^上传图床")]
+        )
+    )
+async def runcmd(
+    app: Ariadne,
+    message: MessageChain,
+    event:GroupMessage,
+    group: Group):
+    
+    l = message.get(Image)
+    s = ""
+    if not l:
+        await app.send_group_message(
+            group,
+            
+            MessageChain(
+                At(event.sender.id),
+                "没看到你发了什么图嗷，跟在命令后面再试试吧"
+            ),
+            quote=event.message_chain.get_first(Source)
+            
+        )
+        return
+    elif len(l)>10:
+        await app.send_group_message(
+            group,
+            MessageChain(At(event.sender.id),"太多了，一次只能10个哦~"),
+            quote=event.message_chain.get_first(Source)
+            
+        )
+        return
+
+    for i in l:
+        s = s +f"{i.url}\n"
+
+    await app.send_group_message(
+            group,
+            MessageChain(At(event.sender.id),f"\n{s}上传好了哦"),
+            quote=event.message_chain.get_first(Source)
+            
+        )

@@ -9,7 +9,7 @@ from graia.ariadne.message.parser.twilight import (
     UnionMatch,
     MatchResult
 )
-from graia.saya import Saya, Channel
+from graia.saya import Channel
 from graia.saya.builtins.broadcast import ListenerSchema
 from graia.ariadne.message.element import Voice
 from graia.ariadne.model import Group
