@@ -35,10 +35,11 @@ PATH = os.path.dirname(__file__)+"/assets/"
 
 SIGNING = []
 
+MINYAN = ["我们称之为高效！"]
 
 energy_range = [100,500]
 
-#生成签到图片
+#生成信息图片
 async def genSignPic(
     event:GroupMessage,
     group,
@@ -57,6 +58,7 @@ async def genSignPic(
     box1 = GeneralBox()
     box2 = GeneralBox()
     box3 = MenuBox()
+    box4 = MenuBox()
     imageio.write(await event.sender.get_avatar())
     imageio.seek(0)
     img = PImage.open(imageio)
@@ -68,11 +70,11 @@ async def genSignPic(
     box2.add(f"Age:{detail.age}","")
     box2.add(f"Sex:{detail.sex}","")
     
-    box3.add(f"麟币(能量币)：{coin}","能量币可用于兑换合金",icon=PImage.open(PATH+"Energy.png"))
+    box3.add(f"麟币(能量币)：{coin}","能量币可用于兑换合金",icon=PImage.open(PATH+"coins/Energy.png"))
     if ev:box3.add(f"麟币(能量币)事件：",ev)
-    box3.add(f"合金：{iron}","合金可用于购买舰船",icon=PImage.open(PATH+"Alloys.png"))
-    box3.add(f"凝聚力：{unity}","您在本群的威望",icon=PImage.open(PATH+"Unity.png"))
-    if isnew:box3.add(
+    box3.add(f"合金：{iron}","合金可用于购买舰船",icon=PImage.open(PATH+"coins/Alloys.png"))
+    box3.add(f"凝聚力：{unity}","您在本群的威望 默认为100",icon=PImage.open(PATH+"coins/Unity.png"))
+    if isnew:box4.add(
         f"""
 I solemny swear \n
 我在这里庄严起誓\n
@@ -85,24 +87,22 @@ From the depths of the Pacific ，to the edge of the Galaxy.\n
 For as long as I shall live.\n
 至死方休！！
 ""","")
-    column.add(box1,box2,box3)
+    column.add(box1,box2,box3,box4)
     mock = OneUIMock(column)
     rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))
     rendered_bytes= rendered_bytes[0]
     return rendered_bytes
-
 
 #检查时间
 async def checktime(result:User)->bool:
     nowtime = datetime.datetime.strptime(datetime.datetime.now().strftime("%Y-%m-%d 00:00:00"),"%Y-%m-%d %H:%M:%S")
     return (nowtime - result.lasttime)> datetime.timedelta(seconds=4)
 
-
+#签到
 async def DailySignin(
     app:Ariadne,
     group:Group,
     event:GroupMessage,
-    message:MessageChain,
 ) -> MessageChain:
     ##判断是否正在使用
     if event.sender.id in SIGNING:return MessageChain("你好像正在使用本功能，请先使用完成")
@@ -178,7 +178,7 @@ async def DailySignin(
             coinincrease= random.randint(energy_range[0],energy_range[1])
             first.coin += coinincrease
             if coinincrease>0:s = f"{first.coin}  ↑{coinincrease}"
-            else : s = f"{first.coin}  ↑{coinincrease}"
+            else : s = f"{first.coin}  ↓{coinincrease}"
 
             #开始绘图
             img = await genSignPic(
@@ -198,10 +198,34 @@ async def DailySignin(
         SIGNING.remove(event.sender.id)
         return MessageChain(Image(data_bytes=img))
 
-
-            
-    
-
+#获取信息
+async def getMyInfo(app:Ariadne,
+    group:Group,
+    event:GroupMessage,
+) -> MessageChain:
+    await app.send_group_message(
+        group,
+        "Situation Log Updated ...... Waitting....."
+    )
+    dbsession = await db.get_db_session()
+    async with dbsession() as session:
+        first = await session.execute(select(User).where(User.qq==event.sender.id,User.group==group.id).with_for_update().limit(1))
+        first = first.scalars().all()
+        if not first: return MessageChain(Plain(f"守望者【{event.sender.id}】 位面【{group.id}】的星海中没有您的登记，请使用\n.Galaxy -Signin 或 逐鹿星河 签到\n来注册您的星海账号！"))
+        first:User = first[0]
+        img = await genSignPic(
+                    event,
+                    first.group,
+                    first.nickname,
+                    first.coin,
+                    "",
+                    first.iron,
+                    first.unity,
+                    f"星海{group.id}----{event.sender.id}",
+                    random.choice(MINYAN),
+                    False
+                )
+        return MessageChain(Image(data_bytes=img)) 
 
 @stellairs.use(
     ListenerSchema(
@@ -209,9 +233,10 @@ async def DailySignin(
         inline_dispatchers=[
             Twilight(
                 [
-                    UnionMatch(".ship","逐鹿星河").help('主控制器'),
+                    UnionMatch(".Galaxy","逐鹿星河").help('主控制器'),
                     UnionMatch(
-                        "-Signin","获取今日能量币","签到"
+                        "-Signin","获取今日能量币","签到",
+                        "-MyInfo","我的信息"
                     ) @ "func",
                     WildcardMatch() @ "param",
                 ]
@@ -233,9 +258,9 @@ async def stellairs_handle(
     
     aioHTTPsession = Ariadne.service.client_session
 
-
-    if func in ("-Signin","获取今日能量币","签到"):ret = await DailySignin(app,group,event,message)
-
+    if func in ("-Signin","获取今日能量币","签到"):ret = await DailySignin(app,group,event)
+    elif func in ("-MyInfo","我的信息"):ret = await getMyInfo(app,group,event)
+    else:pass
 
     await app.send_group_message(
         group,
