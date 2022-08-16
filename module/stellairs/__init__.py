@@ -26,6 +26,7 @@ from .generation import(
     genSignPic,
     genRankPic,
 )
+import aiofiles
 
 stellairs = Channel.current()
 
@@ -238,7 +239,9 @@ async def stellairs_handle(
     if func in ("-Signin","获取今日能量币","签到"):ret = await DailySignin(app,group,event)
     elif func in ("-MyInfo","我的信息"):ret = await getMyInfo(app,group,event)
     elif func in ("-LocalRank","本星海排名") and param in ("","综合排名","能量币排行","合金排行","凝聚力排行"):ret = await getGroupRank(app,group,event,param)
-    elif func in ("~","控制台"):ret = MessageChain(Plain(f"想啥呢，这是多人联机，别想轻轻松松就当上💀第四天灾（"))
+    elif func in ("~","控制台"):
+        async with aiofiles.open(PATH+"another/~.gif","rb") as f:
+            ret = MessageChain(Image(data_bytes=await f.read()),Plain(f"想啥呢，这是多人联机，哪来的💀第四天灾（"))
     else:ret = MessageChain(f"啊哦，顾问{config.name}不知道您想干嘛")
 
     await app.send_group_message(
