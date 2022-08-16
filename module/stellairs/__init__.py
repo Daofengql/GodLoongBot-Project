@@ -1,3 +1,4 @@
+from library.config import config
 from graia.ariadne.app import Ariadne
 from library.orm.table import User
 from graia.ariadne.message.parser.twilight import (
@@ -239,12 +240,10 @@ async def stellairs_handle(
     if func in ("-Signin","获取今日能量币","签到"):ret = await DailySignin(app,group,event)
     elif func in ("-MyInfo","我的信息"):ret = await getMyInfo(app,group,event)
     elif func in ("-LocalRank","本星海排名") and param in ("","综合排名","能量币排行","合金排行","凝聚力排行"):ret = await getGroupRank(app,group,event,param)
-    else:pass
+    else:ret = MessageChain(f"啊哦，顾问{config.name}不知道您想干嘛")
 
     await app.send_group_message(
         group,
-        MessageChain(
-            ret
-        )
+        ret
     )
 
