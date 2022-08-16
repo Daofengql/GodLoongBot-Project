@@ -1,11 +1,12 @@
 from graia.ariadne.event.message import GroupMessage
-from graia.ariadne.model import Group
+from graia.ariadne.model import Group,Profile
 from library.image.oneui_mock.elements import *
 import asyncio
 import os
 import PIL.Image as PImage
 from io import BytesIO
 from library.orm.table import User
+from graia.ariadne.app import Ariadne
 
 PATH = os.path.dirname(__file__)+"/assets/"
 
@@ -41,7 +42,7 @@ async def genSignPic(
     box1 = GeneralBox()
     box2 = GeneralBox()
     box3 = MenuBox()
-    box4 = MenuBox()
+    box4 = GeneralBox()
     imageio.write(await event.sender.get_avatar())
     imageio.seek(0)
     img = PImage.open(imageio)
@@ -68,7 +69,6 @@ async def genSignPic(
 
 
 async def genRankPic(
-    event:GroupMessage,
     group:Group,
     lists:list[User],
     types
@@ -82,7 +82,7 @@ async def genRankPic(
     count = 1
     for user in lists:
         box1 = GeneralBox()
-        box1.add(f"{count}、{user.nickname}","")
+        box1.add(f"{count}、{user.nickname}",f"战..啊不，先驱{user.id}号")
         box2 = MenuBox()
         box2.add(f"麟币(能量币)：{user.coin}","能量币可用于兑换合金",icon=PImage.open(PATH+"coins/Energy.png"))
         box2.add(f"合金：{user.iron}","合金可用于购买舰船",icon=PImage.open(PATH+"coins/Alloys.png"))

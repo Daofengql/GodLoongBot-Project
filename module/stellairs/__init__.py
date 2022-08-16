@@ -160,6 +160,7 @@ async def getMyInfo(app:Ariadne,
         first = first.scalars().all()
         if not first: return MessageChain(Plain(f"守望者【{event.sender.id}】 位面【{group.id}】的星海中没有您的登记，请使用\n.Galaxy -Signin 或 逐鹿星河 签到\n来注册您的星海账号！"))
         first:User = first[0]
+        if not first:return MessageChain(Plain("本群好像还没加入星海~"))
         img = await genSignPic(
                     event,
                     first.group,
@@ -193,7 +194,6 @@ async def getGroupRank(app:Ariadne,
         elif types in ("凝聚力排行"):first = await session.execute(select(User).where(User.group==group.id).order_by(User.unity.desc()).limit(6))
         first:list[User] = first.scalars().all()
         img = await genRankPic(
-            event,
             group,
             first,
             types
@@ -201,9 +201,6 @@ async def getGroupRank(app:Ariadne,
         return MessageChain(Image(data_bytes=img))
 
             
-
-
-
 
 @stellairs.use(
     ListenerSchema(
@@ -215,7 +212,8 @@ async def getGroupRank(app:Ariadne,
                     UnionMatch(
                         "-Signin","获取今日能量币","签到",
                         "-MyInfo","我的信息",
-                        "-LocalRank","本星海排名"
+                        "-LocalRank","本星海排名",
+                        "~","控制台"
                     ) @ "func",
                     WildcardMatch() @ "param",
                 ]
@@ -240,6 +238,7 @@ async def stellairs_handle(
     if func in ("-Signin","获取今日能量币","签到"):ret = await DailySignin(app,group,event)
     elif func in ("-MyInfo","我的信息"):ret = await getMyInfo(app,group,event)
     elif func in ("-LocalRank","本星海排名") and param in ("","综合排名","能量币排行","合金排行","凝聚力排行"):ret = await getGroupRank(app,group,event,param)
+    elif func in ("~","控制台"):ret = MessageChain(Plain(f"想啥呢，这是多人联机，别想轻轻松松就当上💀第四天灾（"))
     else:ret = MessageChain(f"啊哦，顾问{config.name}不知道您想干嘛")
 
     await app.send_group_message(
