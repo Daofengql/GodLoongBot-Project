@@ -1,5 +1,5 @@
 from graia.ariadne.app import Ariadne
-from library.orm.table import BattleLog,User,OwnShip,ShipGroup
+from library.orm.table import User
 from graia.ariadne.message.parser.twilight import (
     Twilight,
     UnionMatch,
@@ -22,7 +22,8 @@ import random
 import datetime
 from .texts import *
 from .generation import(
-    genSignPic
+    genSignPic,
+    genRankPic,
 )
 
 stellairs = Channel.current()
@@ -47,6 +48,7 @@ async def DailySignin(
     group:Group,
     event:GroupMessage,
 ) -> MessageChain:
+    """进行签到获取积分"""
     ##判断是否正在使用
     if event.sender.id in SIGNING:return MessageChain("你好像正在使用本功能，请先使用完成")
     SIGNING.append(event.sender.id)
@@ -146,6 +148,7 @@ async def getMyInfo(app:Ariadne,
     group:Group,
     event:GroupMessage,
 ) -> MessageChain:
+    """获取自身资源数据"""
     await app.send_group_message(
         group,
         "Situation Log Updated ...... Waitting....."
@@ -170,6 +173,37 @@ async def getMyInfo(app:Ariadne,
                 )
         return MessageChain(Image(data_bytes=img)) 
 
+#获取群排行
+async def getGroupRank(app:Ariadne,
+    group:Group,
+    event:GroupMessage,
+    types:str
+) -> MessageChain:
+    """获取群排行榜"""
+    await app.send_group_message(
+        group,
+        f"正在获取位面[{group.id}]的排名"
+    )
+    dbsession = await db.get_db_session()
+    async with dbsession() as session:
+        if types in ("","综合排名"): first = await session.execute(select(User).where(User.group==group.id).order_by(((User.coin*0.35)+(User.iron*0.6)+(User.unity*0.05)).desc()).limit(6))
+        elif types in ("能量币排行"):first = await session.execute(select(User).where(User.group==group.id).order_by(User.coin.desc()).limit(6))
+        elif types in ("合金排行"):first = await session.execute(select(User).where(User.group==group.id).order_by(User.iron.desc()).limit(6))
+        elif types in ("凝聚力排行"):first = await session.execute(select(User).where(User.group==group.id).order_by(User.unity.desc()).limit(6))
+        first:list[User] = first.scalars().all()
+        img = await genRankPic(
+            event,
+            group,
+            first,
+            types
+        )
+        return MessageChain(Image(data_bytes=img))
+
+            
+
+
+
+
 @stellairs.use(
     ListenerSchema(
         listening_events=[GroupMessage],
@@ -179,7 +213,8 @@ async def getMyInfo(app:Ariadne,
                     UnionMatch(".Galaxy","逐鹿星河").help('主控制器'),
                     UnionMatch(
                         "-Signin","获取今日能量币","签到",
-                        "-MyInfo","我的信息"
+                        "-MyInfo","我的信息",
+                        "-LocalRank","本星海排名"
                     ) @ "func",
                     WildcardMatch() @ "param",
                 ]
@@ -203,6 +238,7 @@ async def stellairs_handle(
 
     if func in ("-Signin","获取今日能量币","签到"):ret = await DailySignin(app,group,event)
     elif func in ("-MyInfo","我的信息"):ret = await getMyInfo(app,group,event)
+    elif func in ("-LocalRank","本星海排名") and param in ("","综合排名","能量币排行","合金排行","凝聚力排行"):ret = await getGroupRank(app,group,event,param)
     else:pass
 
     await app.send_group_message(

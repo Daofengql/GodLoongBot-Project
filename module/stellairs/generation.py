@@ -1,9 +1,11 @@
 from graia.ariadne.event.message import GroupMessage
+from graia.ariadne.model import Group
 from library.image.oneui_mock.elements import *
 import asyncio
 import os
 import PIL.Image as PImage
 from io import BytesIO
+from library.orm.table import User
 
 PATH = os.path.dirname(__file__)+"/assets/"
 
@@ -62,3 +64,36 @@ async def genSignPic(
     rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))
     rendered_bytes= rendered_bytes[0]
     return rendered_bytes
+
+
+
+async def genRankPic(
+    event:GroupMessage,
+    group:Group,
+    lists:list[User],
+    types
+)->bytes:
+    column = Column(Banner(f"位面[{group.id}]排行榜"))
+    if types in ("","综合排名"): column.add(Header("综合排名","按能量币x35% 合金x60% 凝聚力x5% 排列"))
+    elif types in ("能量币排行"): column.add(Header("能量币排名",""))
+    elif types in ("合金排行"): column.add(Header("合金排名",""))
+    elif types in ("凝聚力排行"): column.add(Header("凝聚力排名",""))
+
+    count = 1
+    for user in lists:
+        box1 = GeneralBox()
+        box1.add(f"{count}、{user.nickname}","")
+        box2 = MenuBox()
+        box2.add(f"麟币(能量币)：{user.coin}","能量币可用于兑换合金",icon=PImage.open(PATH+"coins/Energy.png"))
+        box2.add(f"合金：{user.iron}","合金可用于购买舰船",icon=PImage.open(PATH+"coins/Alloys.png"))
+        box2.add(f"凝聚力：{user.unity}","您在本群的威望 默认为100",icon=PImage.open(PATH+"coins/Unity.png"))
+        column.add(box1,box2)
+        count +=1
+
+    mock = OneUIMock(column)
+    rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))
+    rendered_bytes= rendered_bytes[0]
+    return rendered_bytes
+
+
+
