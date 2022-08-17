@@ -274,6 +274,19 @@ async def getGroupRank(
         inline_dispatchers=[
             Twilight(
                 [
+                    UnionMatch("签到").help("主控制器") @ "func",
+                    WildcardMatch() @ "param",
+                ]
+            )
+        ],
+    )
+)
+@stellairs.use(
+    ListenerSchema(
+        listening_events=[GroupMessage],
+        inline_dispatchers=[
+            Twilight(
+                [
                     UnionMatch(".Galaxy", "逐鹿星河").help("主控制器"),
                     UnionMatch(
                         "-Signin","获取今日能量币","签到",
