@@ -102,6 +102,13 @@ async def DailySignin(
             except asyncio.exceptions.TimeoutError:
                 SIGNING.remove(event.sender.id)
                 return MessageChain("超时拉~")
+            
+            #加入提醒
+            await app.send_group_message(
+                group,
+                "正在为您制作星海共同体成员名片....",
+                quote=event.message_chain.get_first(Source)
+            )
 
             await asyncio.sleep(random.randint(1, 4))  # 假装延迟（
 
@@ -269,15 +276,10 @@ async def getGroupRank(
                 [
                     UnionMatch(".Galaxy", "逐鹿星河").help("主控制器"),
                     UnionMatch(
-                        "-Signin",
-                        "获取今日能量币",
-                        "签到",
-                        "-MyInfo",
-                        "我的信息",
-                        "-LocalRank",
-                        "本星海排名",
-                        "~",
-                        "控制台",
+                        "-Signin","获取今日能量币","签到",
+                        "-MyInfo","我的信息",
+                        "-LocalRank","本星海排名",
+                        "~","控制台",
                     )
                     @ "func",
                     WildcardMatch() @ "param",
