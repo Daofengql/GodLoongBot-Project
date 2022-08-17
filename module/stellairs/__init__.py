@@ -7,7 +7,7 @@ from graia.ariadne.message.parser.twilight import (
     MatchResult,
     WildcardMatch,
 )
-from library import Bot
+from library.Bot import bot
 from graia.saya import Channel
 from graia.ariadne.event.message import GroupMessage
 from graia.ariadne.message.chain import MessageChain
@@ -40,7 +40,7 @@ PATH = os.path.dirname(__file__) + "/assets/"
 
 SIGNING = []
 
-bot = Bot()
+bot = bot()
 energy_range = [100, 500]
 
 # 检查时间
