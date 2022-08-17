@@ -7,6 +7,7 @@ from graia.ariadne.message.parser.twilight import (
     MatchResult,
     WildcardMatch,
 )
+from library import Bot
 from graia.saya import Channel
 from graia.ariadne.event.message import GroupMessage
 from graia.ariadne.message.chain import MessageChain
@@ -39,6 +40,7 @@ PATH = os.path.dirname(__file__) + "/assets/"
 
 SIGNING = []
 
+bot = Bot()
 energy_range = [100, 500]
 
 # 检查时间
@@ -93,16 +95,24 @@ async def DailySignin(
             @Waiter.create_using_function(listening_events=[GroupMessage])
             async def waiter(waiter_message: MessageChain, g: Group, e: GroupMessage):
                 if e.sender.id == event.sender.id and g.id == group.id:
-                    return waiter_message.display
+                    for word in bot.weijingci:
+                        if word in waiter_message.display: 
+                            return False,""
+                    return True,waiter_message.display
 
             try:
-                dat = await asyncio.wait_for(
+                stat,dat = await asyncio.wait_for(
                     InterruptControl(app.broadcast).wait(waiter), 30
                 )
             except asyncio.exceptions.TimeoutError:
                 SIGNING.remove(event.sender.id)
                 return MessageChain("超时拉~")
-            
+            if not stat:
+                await app.send_group_message(
+                    group,
+                    "您的昵称含有不适宜的词汇，已经暂停生成",
+                ) 
+                return
             #加入提醒
             await app.send_group_message(
                 group,
