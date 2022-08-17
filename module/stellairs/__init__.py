@@ -85,12 +85,12 @@ async def DailySignin(
                     Plain(
                         f""" III》上的土著...啊不，先驱（{
                         event.sender.name
-                    }）还没加入星海\n正在为您申请加入星海.....\n请在30秒内输入您在本星海的昵称"""
+                    }）还没加入星海\n正在为您申请加入星海....."""
                     ),
                 ),
                 quote=event.message_chain.get_first(Source),
             )
-
+            """
             # 等待用户输入昵称
             @Waiter.create_using_function(listening_events=[GroupMessage])
             async def waiter(waiter_message: MessageChain, g: Group, e: GroupMessage):
@@ -113,13 +113,14 @@ async def DailySignin(
                     "您的昵称含有不适宜的词汇，已经暂停生成",
                 ) 
                 return
+            
             #加入提醒
             await app.send_group_message(
                 group,
                 "正在为您制作星海共同体成员名片....",
                 quote=event.message_chain.get_first(Source)
             )
-
+            """
             await asyncio.sleep(random.randint(1, 4))  # 假装延迟（
 
             # 开始加入数据库
@@ -133,7 +134,7 @@ async def DailySignin(
                         "%Y-%m-%d %H:%M:%S",
                     ),
                     coin=coinincrease,
-                    nickname=dat,
+                    nickname=event.sender.name,
                     iron=0,
                     unity=100,
                 )
@@ -141,7 +142,7 @@ async def DailySignin(
             img = await genSignPic(
                 event,
                 group.id,
-                dat,
+                event.sender.name,
                 coinincrease,
                 "",
                 0,
