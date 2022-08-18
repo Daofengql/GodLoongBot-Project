@@ -80,7 +80,7 @@ async def DailySignin(
                     Plain(
                         f""" III》上的土著...啊不，先驱（{
                         event.sender.name
-                    }）还没加入星海\n正在为您申请加入星海....."""
+                    }）研究出了空间飞行技术\n正在为ta申请加入星海共同体....."""
                     ),
                 ),
                 quote=event.message_chain.get_first(Source),
