@@ -7,63 +7,6 @@ from loguru import logger
 from pydantic import BaseModel, AnyHttpUrl, root_validator, validator
 
 
-class HubMetadata(BaseModel):
-    """
-    Metadata for hub.
-    """
-
-    __instance: "HubMetadata" = None
-
-    authorize: str = ""
-    get_me: str = ""
-    get_bot_list: str = ""
-    heartbeat: str = ""
-    notified_missing: str = ""
-    online_event: str = ""
-    offline_event: str = ""
-    register_bot: str = ""
-    metadata: str = ""
-    announcement: str = ""
-    module_metadata: str = ""
-    download_module: str = ""
-    search_module: str = ""
-
-    def __new__(cls, *args, **kwargs):
-        if cls.__instance is None:
-            cls.__instance = super().__new__(cls)
-        return cls.__instance
-
-
-class HubConfig(BaseModel):
-    """
-    Configuration for hub.
-    """
-
-    __instance: "HubConfig" = None
-
-    enabled: bool = False
-    url: AnyHttpUrl = "https://api.nullqwertyuiop.me/project-null"
-    secret: str = ""
-    meta: str = "/metadata"
-    metadata: None | HubMetadata = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls.__instance is None:
-            cls.__instance = super().__new__(cls)
-        return cls.__instance
-
-    @root_validator()
-    def hub_check(cls, values: dict):
-        assert not (
-            values.get("enabled", False) and values.get("secret", "") == ""
-        ), "Hub config is enabled but secret is not set"
-        if not values.get("enabled", False):
-            values["metadata"] = None
-        elif values.get("metadata") is None:
-            values["metadata"] = HubMetadata()
-        return values
-
-
 class PathConfig(BaseModel):
     """
     Configuration for path.
@@ -132,8 +75,11 @@ class MySQLConfig(BaseModel):
     __instance: "MySQLConfig" = None
 
     disable_pooling: bool = False
-    pool_size: int = 40
-    max_overflow: int = 60
+    pool_pre_ping: bool = True
+    pool_use_lifo: bool = True
+    pool_recycle: int = 3600
+    max_overflow: int = 1000
+    pool_size: int = 5000
 
     def __new__(cls, *args, **kwargs):
         if cls.__instance is None:
@@ -184,13 +130,13 @@ class DatabaseConfig(BaseModel):
 
     @root_validator()
     def config_check(cls, value: dict):
-        if value.get("link", None).startswith("mysql+aiomysql://") and not value.get(
+        if value.get("link", "").startswith("mysql+aiomysql://") and not value.get(
             "config", None
         ):
             value["config"] = MySQLConfig()
-        elif value.get("link", None).startswith(
-            "sqlite+aiosqlite:///data/data.db"
-        ) and value.get("config", None):
+        elif value.get("link", "").startswith("sqlite+aiosqlite://") and value.get(
+            "config", None
+        ):
             value["config"] = None
         return value
 
@@ -216,7 +162,6 @@ class NConfig(BaseModel):
     db: DatabaseConfig = DatabaseConfig()
     func: FunctionConfig = FunctionConfig()
     path: PathConfig = PathConfig()
-    hub: HubConfig = HubConfig()
 
     def __init__(self):
         self.__init_check()

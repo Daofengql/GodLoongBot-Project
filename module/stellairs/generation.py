@@ -1,14 +1,22 @@
-from graia.ariadne.event.message import GroupMessage
-from graia.ariadne.model import Group, Profile
-from library.image.oneui_mock.elements import *
 import asyncio
-import os
-import PIL.Image as PImage
 from io import BytesIO
-from library.orm.table import User
-from graia.ariadne.app import Ariadne
+from pathlib import Path
 
-PATH = os.path.dirname(__file__) + "/assets/"
+import PIL.Image as PImage
+from graia.ariadne.event.message import GroupMessage
+from graia.ariadne.model import Group
+
+from library.image.oneui_mock.elements import (
+    Banner,
+    Header,
+    MenuBox,
+    GeneralBox,
+    Column,
+    OneUIMock,
+)
+from library.orm.table import User
+
+PATH = Path(__file__).parent / "assets"
 
 NEW_USER = """
 I solemny swear \n
@@ -22,6 +30,7 @@ From the depths of the Pacific ，to the edge of the Galaxy.\n
 For as long as I shall live.\n
 至死方休！！
 """
+
 
 # 生成信息图片
 async def genSignPic(
@@ -38,7 +47,7 @@ async def genSignPic(
     imageio.seek(0)
     img = PImage.open(imageio)
     column.add(img)
-    box1.add(f"您的信息如下：", "")
+    box1.add("您的信息如下：", "")
 
     box2.add(f"SOL III {group}位面的先驱", "")
     box2.add(f"Name:{nickname}", "")
@@ -46,13 +55,13 @@ async def genSignPic(
     box2.add(f"Sex:{detail.sex}", "")
 
     box3.add(
-        f"麟币(能量币)：{coin}", "能量币可用于兑换合金", icon=PImage.open(PATH + "coins/Energy.png")
+        f"麟币(能量币)：{coin}", "能量币可用于兑换合金", icon=PImage.open(PATH / "coins" / "Energy.png")
     )
     if ev:
-        box3.add(f"麟币(能量币)事件：", ev)
-    box3.add(f"合金：{iron}", "合金可用于购买舰船", icon=PImage.open(PATH + "coins/Alloys.png"))
+        box3.add("麟币(能量币)事件：", ev)
+    box3.add(f"合金：{iron}", "合金可用于购买舰船", icon=PImage.open(PATH / "coins" / "Alloys.png"))
     box3.add(
-        f"凝聚力：{unity}", "您在本群的威望 默认为100", icon=PImage.open(PATH + "coins/Unity.png")
+        f"凝聚力：{unity}", "您在本群的威望 默认为100", icon=PImage.open(PATH / "coins" / "Unity.png")
     )
     if isnew:
         box4.add(NEW_USER, "")
@@ -67,33 +76,33 @@ async def genRankPic(group: Group, lists: list[User], types) -> bytes:
     column = Column(Banner(f"位面[{group.id}]排行榜"))
     if types in ("", "综合排名"):
         column.add(Header("综合排名", "按能量币x35% 合金x60% 凝聚力x5% 排列"))
-    elif types in ("能量币排行"):
+    elif types == "能量币排行":
         column.add(Header("能量币排名", ""))
-    elif types in ("合金排行"):
+    elif types == "合金排行":
         column.add(Header("合金排名", ""))
-    elif types in ("凝聚力排行"):
+    elif types == "凝聚力排行":
         column.add(Header("凝聚力排名", ""))
 
-    count = 1
-    for user in lists:
+    for count, user in enumerate(lists, start=1):
         box1 = GeneralBox()
         box1.add(f"{count}、{user.nickname}", f"战..啊不，先驱{user.id}号")
         box2 = MenuBox()
         box2.add(
             f"麟币(能量币)：{user.coin}",
             "能量币可用于兑换合金",
-            icon=PImage.open(PATH + "coins/Energy.png"),
+            icon=PImage.open(PATH / "coins" / "Energy.png"),
         )
         box2.add(
-            f"合金：{user.iron}", "合金可用于购买舰船", icon=PImage.open(PATH + "coins/Alloys.png")
+            f"合金：{user.iron}",
+            "合金可用于购买舰船",
+            icon=PImage.open(PATH / "coins" / "Alloys.png"),
         )
         box2.add(
             f"凝聚力：{user.unity}",
             "您在本群的威望 默认为100",
-            icon=PImage.open(PATH + "coins/Unity.png"),
+            icon=PImage.open(PATH / "coins" / "Unity.png"),
         )
         column.add(box1, box2)
-        count += 1
 
     mock = OneUIMock(column)
     rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))

@@ -1,11 +1,11 @@
 import os
 import json
+from pathlib import Path
 
 
 class bot(object):
     def __init__(self):
-        with open(
-            os.getcwd() + "/library/weijinci.txt",
+        with (Path().resolve() / "library" / "weijinci.txt").open(
             "r",
             encoding="utf-8",
             errors="ignore",
