@@ -234,4 +234,4 @@ async def worShip(
     """崇拜获取凝聚力"""
     if not message.has(At):
         return MessageChain("好像没有要崇拜的对象哦")
-    
+    return MessageChain("功能开发中")
