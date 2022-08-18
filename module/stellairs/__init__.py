@@ -38,8 +38,6 @@ stellairs.description("模拟stellaris，舰队挑战")
 db = mysql_db_pool()
 PATH = os.path.dirname(__file__) + "/assets/"
 
-SIGNING = []
-
 bot = bot()
 energy_range = [100, 500]
 
@@ -61,9 +59,6 @@ async def DailySignin(
 ) -> MessageChain:
     """进行签到获取积分"""
     ##判断是否正在使用
-    if event.sender.id in SIGNING:
-        return MessageChain("你好像正在使用本功能，请先使用完成")
-    SIGNING.append(event.sender.id)
 
     dbsession = await db.get_db_session()
     async with dbsession() as session:
@@ -90,38 +85,6 @@ async def DailySignin(
                 ),
                 quote=event.message_chain.get_first(Source),
             )
-            """
-            # 等待用户输入昵称
-            @Waiter.create_using_function(listening_events=[GroupMessage])
-            async def waiter(waiter_message: MessageChain, g: Group, e: GroupMessage):
-                if e.sender.id == event.sender.id and g.id == group.id:
-                    for word in bot.weijingci:
-                        if word in waiter_message.display: 
-                            return False,""
-                    return True,waiter_message.display
-
-            try:
-                stat,dat = await asyncio.wait_for(
-                    InterruptControl(app.broadcast).wait(waiter), 30
-                )
-            except asyncio.exceptions.TimeoutError:
-                SIGNING.remove(event.sender.id)
-                return MessageChain("超时拉~")
-            if not stat:
-                await app.send_group_message(
-                    group,
-                    "您的昵称含有不适宜的词汇，已经暂停生成",
-                ) 
-                return
-            
-            #加入提醒
-            await app.send_group_message(
-                group,
-                "正在为您制作星海共同体成员名片....",
-                quote=event.message_chain.get_first(Source)
-            )
-            """
-            await asyncio.sleep(random.randint(1, 4))  # 假装延迟（
 
             # 开始加入数据库
             coinincrease = 2 * random.randint(energy_range[0], energy_range[1])
@@ -155,7 +118,6 @@ async def DailySignin(
         else:
             first: User = first[0]
             if not await checktime(first):
-                SIGNING.remove(event.sender.id)
                 return MessageChain(
                     Plain(
                         f"先驱 [{event.sender.name}] ,您今天已经在位面：{group.id}上领取过您的今日奖励了，请使用其他方法获取麟币。梵天神兵都没你高效（"
@@ -189,7 +151,6 @@ async def DailySignin(
             )
 
         await session.commit()
-        SIGNING.remove(event.sender.id)
         return MessageChain(Image(data_bytes=img))
 
 
