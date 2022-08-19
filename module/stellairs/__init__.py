@@ -21,7 +21,8 @@ from .utils import (
     DailySignin,
     getGroupRank,
     getMyInfo,
-    worShip
+    worShip,
+    changeMyName
 )
 import aiofiles
 
@@ -63,6 +64,7 @@ PATH = os.path.dirname(__file__) + "/assets/"
                         "-MyInfo","我的信息",
                         "-LocalRank","本星海排名",
                         "-Worhip","崇拜",
+                        "-ChangeMyInfo", "更新名字",
                         "~","控制台",
                     )
                     @ "func",
@@ -89,6 +91,8 @@ async def stellairs_handle(
         ret = await DailySignin(app, group, event)
     elif func in ("-MyInfo", "我的信息"):
         ret = await getMyInfo(app, group, event)
+    elif func in ("-ChangeMyInfo", "更新名字"):
+        ret = await changeMyName(group, event)
     elif func in ("-Worhip","崇拜"):
         ret = await worShip(app, group, event,message)
     elif func in ("-LocalRank", "本星海排名") and param in (
@@ -98,7 +102,7 @@ async def stellairs_handle(
         "合金排行",
         "凝聚力排行",
     ):
-        ret = await getGroupRank(app, group, event, param)
+        ret = await getGroupRank(app, group, param)
     elif func in ("~", "控制台"):
         async with aiofiles.open(PATH + "another/~.gif", "rb") as f:
             ret = MessageChain(
@@ -107,4 +111,8 @@ async def stellairs_handle(
     else:
         ret = MessageChain(f"啊哦，顾问{config.name}不知道您想干嘛")
 
-    await app.send_group_message(group, ret)
+    await app.send_group_message(
+        group, 
+        ret,
+        quote=message.get_first(Source)
+    )

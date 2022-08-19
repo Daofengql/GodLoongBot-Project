@@ -184,7 +184,7 @@ async def getMyInfo(
 
 # 获取群排行
 async def getGroupRank(
-    app: Ariadne, group: Group, event: GroupMessage, types: str
+    app: Ariadne, group: Group, types: str
 ) -> MessageChain:
     """获取群排行榜"""
     await app.send_group_message(group, f"正在获取位面[{group.id}]的排名")
@@ -235,3 +235,34 @@ async def worShip(
     if not message.has(At):
         return MessageChain("好像没有要崇拜的对象哦")
     return MessageChain("功能开发中")
+
+
+
+#改名
+async def changeMyName(    
+    group: Group, event: GroupMessage
+) -> MessageChain:
+    """刷新数据库中的名字"""
+    name = event.sender.name
+    dbsession = await db.get_db_session()
+    async with dbsession() as session:
+        first = await session.execute(
+            select(User)
+            .where(User.qq == event.sender.id, User.group == group.id)
+            .with_for_update()
+            .limit(1)
+        )
+        first: list[User] = first.scalars().all()
+        if not first:
+            return MessageChain("本星海中没有您的记录，请使用   逐鹿星河 签到   或   .Galaxy -Signin   来注册您的账号")
+        first: User = first[0]
+        first.nickname = name
+        await session.commit()
+        return MessageChain("您在本星海的昵称已经跟具当前群昵称刷新")
+
+
+        
+
+
+
+    
