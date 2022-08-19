@@ -8,8 +8,6 @@ from graia.ariadne.event.message import GroupMessage
 from graia.ariadne.message.chain import MessageChain
 from graia.ariadne.message.element import Image, At, Plain, Source
 from graia.ariadne.model import Group
-import aiocache
-import asyncio
 import os
 from sqlalchemy import select, insert
 import random
@@ -201,8 +199,6 @@ async def getGroupRank(
 
     img = await genRankPic(group.id, types)
     return MessageChain(Image(data_bytes=img))
-
-
 
 
 #崇拜

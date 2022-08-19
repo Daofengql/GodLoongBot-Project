@@ -47,7 +47,7 @@ async def genSignPic(
         header = random.choice(MINYAN)
     imageio = BytesIO()
     
-    column = Column(Banner(banner), Header(header, ""))
+    column = Column(Banner(banner), Header(header, "每30分钟刷新一次"))
     box1 = GeneralBox()
     box2 = GeneralBox()
     box3 = MenuBox()
@@ -85,13 +85,13 @@ async def genRankPic(group,types:str) -> bytes:
     lists = await _getGroupRank(group,types)
     column = Column(Banner(f"位面[{group}]排行榜"))
     if types in ("", "综合排名"):
-        column.add(Header("综合排名", "按能量币x35% 合金x60% 凝聚力x5% 排列"))
+        column.add(Header("综合排名", "按能量币x35% 合金x60% 凝聚力x5% 排列 每10分钟刷新一次"))
     elif types == "能量币排行":
-        column.add(Header("能量币排名", ""))
+        column.add(Header("能量币排名", "每10分钟刷新一次"))
     elif types == "合金排行":
-        column.add(Header("合金排名", ""))
+        column.add(Header("合金排名", "每10分钟刷新一次"))
     elif types == "凝聚力排行":
-        column.add(Header("凝聚力排名", ""))
+        column.add(Header("凝聚力排名", "每10分钟刷新一次"))
 
     for count, user in enumerate(lists, start=1):
         box1 = GeneralBox()
@@ -119,7 +119,7 @@ async def genRankPic(group,types:str) -> bytes:
     rendered_bytes = rendered_bytes[0]
     return rendered_bytes
 
-
+#不得不吧这东西搬过来
 @aiocache.cached(ttl=600)
 async def _getGroupRank(
     group, types
