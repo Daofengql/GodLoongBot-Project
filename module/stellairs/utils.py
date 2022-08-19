@@ -8,7 +8,7 @@ from graia.ariadne.event.message import GroupMessage
 from graia.ariadne.message.chain import MessageChain
 from graia.ariadne.message.element import Image, At, Plain, Source
 from graia.ariadne.model import Group
-
+import aiocache
 import asyncio
 import os
 from sqlalchemy import select, insert
