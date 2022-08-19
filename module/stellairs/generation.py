@@ -15,7 +15,7 @@ from library.image.oneui_mock.elements import (
     OneUIMock,
 )
 from library.orm.table import User
-
+import aiocache
 PATH = Path(__file__).parent / "assets"
 
 NEW_USER = """
@@ -33,17 +33,18 @@ For as long as I shall live.\n
 
 
 # 生成信息图片
+@aiocache.cached(ttl=1800)
 async def genSignPic(
-    event: GroupMessage, group, nickname, coin, ev, iron, unity, banner, header, isnew
+    age,sex,avatar:bytes, group, nickname, coin, ev, iron, unity, banner, header, isnew
 ) -> bytes:
     imageio = BytesIO()
-    detail = await event.sender.get_profile()
+    
     column = Column(Banner(banner), Header(header, ""))
     box1 = GeneralBox()
     box2 = GeneralBox()
     box3 = MenuBox()
     box4 = GeneralBox()
-    imageio.write(await event.sender.get_avatar())
+    imageio.write(avatar)
     imageio.seek(0)
     img = PImage.open(imageio)
     column.add(img)
@@ -51,8 +52,8 @@ async def genSignPic(
 
     box2.add(f"SOL III {group}位面的先驱", "")
     box2.add(f"Name:{nickname}", "")
-    box2.add(f"Age:{detail.age}", "")
-    box2.add(f"Sex:{detail.sex}", "")
+    box2.add(f"Age:{age}", "")
+    box2.add(f"Sex:{sex}", "")
 
     box3.add(
         f"麟币(能量币)：{coin}", "能量币可用于兑换合金", icon=PImage.open(PATH / "coins" / "Energy.png")

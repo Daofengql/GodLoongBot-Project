@@ -46,7 +46,8 @@ async def DailySignin(
 ) -> MessageChain:
     """进行签到获取积分"""
     ##判断是否正在使用
-
+    detail = await event.sender.get_profile()
+    avatar = await event.sender.get_avatar()
     dbsession = await db.get_db_session()
     async with dbsession() as session:
         # 读取用户是否存在
@@ -89,8 +90,11 @@ async def DailySignin(
                     unity=100,
                 )
             )
+            
             img = await genSignPic(
-                event,
+                detail.age,
+                detail.sex,
+                avatar,
                 group.id,
                 event.sender.name,
                 coinincrease,
@@ -125,7 +129,9 @@ async def DailySignin(
 
             # 开始绘图
             img = await genSignPic(
-                event,
+                detail.age,
+                detail.sex,
+                avatar,
                 first.group,
                 first.nickname,
                 s,
@@ -148,6 +154,8 @@ async def getMyInfo(
     event: GroupMessage,
 ) -> MessageChain:
     """获取自身资源数据"""
+    detail = await event.sender.get_profile()
+    avatar = await event.sender.get_avatar()
     await app.send_group_message(group, "Situation Log Updated ...... Waitting.....")
     dbsession = await db.get_db_session()
     async with dbsession() as session:
@@ -168,7 +176,9 @@ async def getMyInfo(
         if not first:
             return MessageChain(Plain("本群好像还没加入星海~"))
         img = await genSignPic(
-            event,
+            detail.age,
+            detail.sex,
+            avatar,
             first.group,
             first.nickname,
             first.coin,
