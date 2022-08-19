@@ -3,8 +3,6 @@ from io import BytesIO
 from pathlib import Path
 
 import PIL.Image as PImage
-from graia.ariadne.event.message import GroupMessage
-from graia.ariadne.model import Group
 
 from library.image.oneui_mock.elements import (
     Banner,
@@ -16,6 +14,14 @@ from library.image.oneui_mock.elements import (
 )
 from library.orm.table import User
 import aiocache
+
+import random
+from .texts import MINYAN
+from sqlalchemy import select
+
+from library.orm.extra import mysql_db_pool
+db = mysql_db_pool()
+
 PATH = Path(__file__).parent / "assets"
 
 NEW_USER = """
@@ -35,8 +41,10 @@ For as long as I shall live.\n
 # 生成信息图片
 @aiocache.cached(ttl=1800)
 async def genSignPic(
-    age,sex,avatar:bytes, group, nickname, coin, ev, iron, unity, banner, header, isnew
+    age:int,sex:str,avatar:bytes, group:int, nickname:str, coin:int, ev, iron:int, unity:int, banner:str, header:str, isnew:bool
 ) -> bytes:
+    if not header:
+        header = random.choice(MINYAN)
     imageio = BytesIO()
     
     column = Column(Banner(banner), Header(header, ""))
@@ -72,9 +80,10 @@ async def genSignPic(
     rendered_bytes = rendered_bytes[0]
     return rendered_bytes
 
-
-async def genRankPic(group: Group, lists: list[User], types) -> bytes:
-    column = Column(Banner(f"位面[{group.id}]排行榜"))
+@aiocache.cached(ttl=600)
+async def genRankPic(group,types:str) -> bytes:
+    lists = await _getGroupRank(group,types)
+    column = Column(Banner(f"位面[{group}]排行榜"))
     if types in ("", "综合排名"):
         column.add(Header("综合排名", "按能量币x35% 合金x60% 凝聚力x5% 排列"))
     elif types == "能量币排行":
@@ -109,3 +118,45 @@ async def genRankPic(group: Group, lists: list[User], types) -> bytes:
     rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))
     rendered_bytes = rendered_bytes[0]
     return rendered_bytes
+
+
+@aiocache.cached(ttl=600)
+async def _getGroupRank(
+    group, types
+) -> list[User]:
+    dbsession = await db.get_db_session()
+    async with dbsession() as session:
+        if types in ("", "综合排名"):
+            first = await session.execute(
+                select(User)
+                .where(User.group == group)
+                .order_by(
+                    (
+                        (User.coin * 0.35) + (User.iron * 0.6) + (User.unity * 0.05)
+                    ).desc()
+                )
+                .limit(6)
+            )
+        elif types in ("能量币排行"):
+            first = await session.execute(
+                select(User)
+                .where(User.group == group.id)
+                .order_by(User.coin.desc())
+                .limit(6)
+            )
+        elif types in ("合金排行"):
+            first = await session.execute(
+                select(User)
+                .where(User.group == group.id)
+                .order_by(User.iron.desc())
+                .limit(6)
+            )
+        elif types in ("凝聚力排行"):
+            first = await session.execute(
+                select(User)
+                .where(User.group == group.id)
+                .order_by(User.unity.desc())
+                .limit(6)
+            )
+        first: list[User] = first.scalars().all()
+    return first

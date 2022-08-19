@@ -15,7 +15,7 @@ from sqlalchemy import select, insert
 import random
 import datetime
 
-from .texts import *
+
 from .generation import (
     genSignPic,
     genRankPic,
@@ -186,7 +186,7 @@ async def getMyInfo(
             first.iron,
             first.unity,
             f"星海{group.id}----{event.sender.id}",
-            random.choice(MINYAN),
+            "",
             False,
         )
         return MessageChain(Image(data_bytes=img))
@@ -198,43 +198,11 @@ async def getGroupRank(
 ) -> MessageChain:
     """获取群排行榜"""
     await app.send_group_message(group, f"正在获取位面[{group.id}]的排名")
-    dbsession = await db.get_db_session()
-    async with dbsession() as session:
-        if types in ("", "综合排名"):
-            first = await session.execute(
-                select(User)
-                .where(User.group == group.id)
-                .order_by(
-                    (
-                        (User.coin * 0.35) + (User.iron * 0.6) + (User.unity * 0.05)
-                    ).desc()
-                )
-                .limit(6)
-            )
-        elif types in ("能量币排行"):
-            first = await session.execute(
-                select(User)
-                .where(User.group == group.id)
-                .order_by(User.coin.desc())
-                .limit(6)
-            )
-        elif types in ("合金排行"):
-            first = await session.execute(
-                select(User)
-                .where(User.group == group.id)
-                .order_by(User.iron.desc())
-                .limit(6)
-            )
-        elif types in ("凝聚力排行"):
-            first = await session.execute(
-                select(User)
-                .where(User.group == group.id)
-                .order_by(User.unity.desc())
-                .limit(6)
-            )
-        first: list[User] = first.scalars().all()
-        img = await genRankPic(group, first, types)
-        return MessageChain(Image(data_bytes=img))
+
+    img = await genRankPic(group.id, types)
+    return MessageChain(Image(data_bytes=img))
+
+
 
 
 #崇拜
