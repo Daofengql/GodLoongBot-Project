@@ -7,6 +7,7 @@ from graia.ariadne.message.parser.twilight import (
     WildcardMatch,
 )
 from library.Bot import bot
+
 from graia.saya import Channel
 from graia.ariadne.event.message import GroupMessage
 from graia.ariadne.message.chain import MessageChain
@@ -22,7 +23,8 @@ from .utils import (
     getGroupRank,
     getMyInfo,
     worShip,
-    changeMyName
+    changeMyName,
+    convertAssets
 )
 import aiofiles
 
@@ -65,6 +67,7 @@ PATH = os.path.dirname(__file__) + "/assets/"
                         "-LocalRank","本星海排名",
                         "-Worhip","崇拜",
                         "-ChangeMyInfo", "更新名字",
+                        "-Convert","兑换",
                         "~","控制台",
                     )
                     @ "func",
@@ -89,12 +92,21 @@ async def stellairs_handle(
 
     if func in ("-Signin", "获取今日能量币", "签到"):
         ret = await DailySignin(app, group, event)
+
     elif func in ("-MyInfo", "我的信息"):
         ret = await getMyInfo(app, group, event)
+
     elif func in ("-ChangeMyInfo", "更新名字"):
         ret = await changeMyName(group, event)
+
     elif func in ("-Worhip","崇拜"):
         ret = await worShip(app, group, event,message)
+
+    elif func in ("-Convert","兑换") and param in (
+        "合金",
+    ):
+        ret = await convertAssets(app, group, event,param)
+
     elif func in ("-LocalRank", "本星海排名") and param in (
         "",
         "综合排名",

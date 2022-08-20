@@ -8,11 +8,16 @@ from graia.ariadne.event.message import GroupMessage
 from graia.ariadne.message.chain import MessageChain
 from graia.ariadne.message.element import Image, At, Plain, Source
 from graia.ariadne.model import Group
+from graia.broadcast.interrupt import Waiter, InterruptControl
+
+from pymysql import err
+
 import os
 from sqlalchemy import select, insert
 import random
 import datetime
 
+import asyncio
 
 from .generation import (
     genSignPic,
@@ -38,9 +43,7 @@ async def checktime(result: User) -> bool:
 
 # 签到
 async def DailySignin(
-    app: Ariadne,
-    group: Group,
-    event: GroupMessage,
+    app: Ariadne,group: Group,event: GroupMessage,
 ) -> MessageChain:
     """进行签到获取积分"""
     ##判断是否正在使用
@@ -147,9 +150,7 @@ async def DailySignin(
 
 # 获取信息
 async def getMyInfo(
-    app: Ariadne,
-    group: Group,
-    event: GroupMessage,
+    app: Ariadne,group: Group,event: GroupMessage,
 ) -> MessageChain:
     """获取自身资源数据"""
     detail = await event.sender.get_profile()
@@ -199,6 +200,83 @@ async def getGroupRank(
 
     img = await genRankPic(group.id, types)
     return MessageChain(Image(data_bytes=img))
+
+
+convertList = []
+#兑换合金
+async def convertAssets(
+    app: Ariadne, group: Group, event: GroupMessage, params
+)-> MessageChain:
+    if f"{event.sender.id}:{group.id}" in convertList:
+        return MessageChain("当前您有一个兑换任务等待完成 如需退出请发送 退出兑换")
+    convertList.append(f"{event.sender.id}:{group.id}")
+    try:
+        dbsession = await db.get_db_session()
+        async with dbsession() as session:
+            first = await session.execute(
+                select(User)
+                .where(User.qq == event.sender.id, User.group == group.id)
+                .with_for_update()
+                .limit(1)
+            )
+            first = first.scalars().all()
+            if not first:
+                convertList.remove(f"{event.sender.id}:{group.id}")
+                return MessageChain(
+                    Plain(
+                        f"守望者【{event.sender.id}】 位面【{group.id}】的星海中没有您的登记，请使用\n.Galaxy -Signin 或 逐鹿星河 签到\n来注册您的星海账号！"
+                    )
+                )
+
+            if params == "合金":
+                await app.send_group_message(
+                    group,
+                    "请问您需要兑换多少合金呢  每1合金需要1500能量币 请在30秒内回复"
+                )
+                @Waiter.create_using_function(listening_events=[GroupMessage])
+                async def waiter(waiter_message: MessageChain, g: Group, e: GroupMessage):
+                    if e.sender.id == event.sender.id and g.id == group.id:
+                        if waiter_message.display == "退出兑换":
+                            convertList.remove(f"{event.sender.id}:{group.id}")
+                            return False,0
+                        if waiter_message.display.isdigit():
+                            if int(waiter_message.display) >0:
+                                convertList.remove(f"{event.sender.id}:{group.id}")
+                                return True,int(waiter_message.display)
+                            else:
+                                convertList.remove(f"{event.sender.id}:{group.id}")
+                                return False,0
+
+                try:
+                    status, dat = await asyncio.wait_for(
+                        InterruptControl(app.broadcast).wait(waiter), 30
+                    )
+                except asyncio.exceptions.TimeoutError:
+                    convertList.remove(f"{event.sender.id}:{group.id}")
+                    return MessageChain("超时拉~")
+                
+                if not status:
+                    return MessageChain("已退出兑换 或 您的输入有误")
+                
+                first: User = first[0]
+                if first.coin < dat*1500:
+                    return MessageChain("兑换失败， 你的能量币剩余不足以兑换")
+                
+                first.coin = first.coin - 1500*dat
+                first.iron = first.iron + dat
+
+                await session.commit()
+                return MessageChain(f"兑换成功，消耗{dat*1500}能量币兑换了{dat}合金")
+             
+    except err.DatabaseError:
+        convertList.remove(f"{event.sender.id}:{group.id}")
+        return MessageChain("目标上行计算机操作异常，请稍后再试")
+    except Exception as e:
+        print(e)
+        convertList.remove(f"{event.sender.id}:{group.id}")
+        return MessageChain("目标上行计算机发生未知故障，请稍后再试")
+
+
 
 
 #崇拜
