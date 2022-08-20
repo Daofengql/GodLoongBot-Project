@@ -231,7 +231,7 @@ async def convertAssets(
             if params == "合金":
                 await app.send_group_message(
                     group,
-                    "请问您需要兑换多少合金呢  每1合金需要1500能量币 请在30秒内回复"
+                    "《泛星系市场》\n请问您需要兑换多少合金呢  每1合金需要1500能量币 请在30秒内回复"
                 )
                 @Waiter.create_using_function(listening_events=[GroupMessage])
                 async def waiter(waiter_message: MessageChain, g: Group, e: GroupMessage):
