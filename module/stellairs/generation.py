@@ -85,7 +85,7 @@ async def genRankPic(group,types:str) -> bytes:
     lists = await _getGroupRank(group,types)
     column = Column(Banner(f"位面[{group}]排行榜"))
     if types in ("", "综合排名"):
-        column.add(Header("综合排名", "按能量币x5% 合金x94.5% 凝聚力x0.5% 排列 每10分钟刷新一次"))
+        column.add(Header("综合排名 换算综合得分排列", "按(能量币x10 + 合金x15000 + 凝聚力x5)/10000 计算 每10分钟刷新一次"))
     elif types == "能量币排行":
         column.add(Header("能量币排名", "每10分钟刷新一次"))
     elif types == "合金排行":
@@ -94,8 +94,9 @@ async def genRankPic(group,types:str) -> bytes:
         column.add(Header("凝聚力排名", "每10分钟刷新一次"))
 
     for count, user in enumerate(lists, start=1):
+        co = (user.coin*10 + user.iron*15000 + user.unity*5)/10000
         box1 = GeneralBox()
-        box1.add(f"{count}、{user.nickname}", f"战..啊不，先驱{user.id}号")
+        box1.add(f"{count}、{user.nickname}", f"战..啊不，先驱{user.id}号 -- {co}分")
         box2 = MenuBox()
         box2.add(
             f"麟币(能量币)：{user.coin}",
@@ -131,7 +132,7 @@ async def _getGroupRank(
                 .where(User.group == group)
                 .order_by(
                     (
-                        (User.coin * 0.05) + (User.iron * 0.945) + (User.unity * 0.005)
+                        ((User.coin * 10) + (User.iron * 15000) + (User.unity * 5))/1000
                     ).desc()
                 )
                 .limit(6)
