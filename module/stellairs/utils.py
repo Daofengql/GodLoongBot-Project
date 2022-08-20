@@ -267,13 +267,14 @@ async def convertAssets(
 
                 await session.commit()
                 return MessageChain(f"兑换成功，消耗{dat*1500}能量币兑换了{dat}合金")
-             
+
+    except err.DataError: 
+        return MessageChain("目标上行计算机操作异常，可能是因为您宛如神明，资源爆仓，导致无法兑换")
+        
     except err.DatabaseError:
-        convertList.remove(f"{event.sender.id}:{group.id}")
         return MessageChain("目标上行计算机操作异常，请稍后再试")
-    except Exception as e:
-        print(e)
-        convertList.remove(f"{event.sender.id}:{group.id}")
+
+    except Exception:
         return MessageChain("目标上行计算机发生未知故障，请稍后再试")
 
 
