@@ -85,7 +85,7 @@ async def genRankPic(group,types:str) -> bytes:
     lists = await _getGroupRank(group,types)
     column = Column(Banner(f"位面[{group}]排行榜"))
     if types in ("", "综合排名"):
-        column.add(Header("综合排名", "按能量币x10% 合金x85% 凝聚力x5% 排列 每10分钟刷新一次"))
+        column.add(Header("综合排名", "按能量币x5% 合金x94.5% 凝聚力x0.5% 排列 每10分钟刷新一次"))
     elif types == "能量币排行":
         column.add(Header("能量币排名", "每10分钟刷新一次"))
     elif types == "合金排行":
@@ -131,7 +131,7 @@ async def _getGroupRank(
                 .where(User.group == group)
                 .order_by(
                     (
-                        (User.coin * 0.1) + (User.iron * 0.85) + (User.unity * 0.05)
+                        (User.coin * 0.05) + (User.iron * 0.945) + (User.unity * 0.005)
                     ).desc()
                 )
                 .limit(6)
