@@ -1,0 +1,89 @@
+{
+    "normal_events":{
+        "introduce":"普通事件集",
+        "event_chains":[
+            {
+                "type":"Pirates",
+                "events":[
+                    {
+                        "message": "我们位于{group}星系的贸易路线没有得到很好的保护，现在近乎变成了法外之地。该恒星系已经吸引了越来越多的海盗、走私贩以及其它各种不法分子，肆无忌惮地掠夺我们的货物",
+                        "answer":[
+                            {
+                                "message":"他们必须被正法",
+                                "coin_event":"increase",
+                                "coin_change":10
+                            },
+                            {
+                                "message": "让他们去吧",
+                                "coin_event": "decrease",
+                                "coin_change": 10
+                            }
+                        ]
+                    },
+                    {
+                        "message": "一小群故障的单位已经脱离了他们的主智能，并躲进了我们境内的{group}星系。这些单位已经无可挽回，并开始利用简陋的飞船打劫穿越该星系的不设防贸易路线，掠夺零件和资源。",
+                        "answer": [
+                            {
+                                "message": "他们必须被正法",
+                                "coin_event": "increase",
+                                "coin_change": 10
+                            },
+                            {
+                                "message": "让他们去吧",
+                                "coin_event": "decrease",
+                                "coin_change": 10
+                            }
+                        ]
+                    },
+                    {
+                        "message": "一小群子人口拥有一种罕见的基因突变，可使它们切断与蜂巢思维的部分连接而不会陷入休眠。不过如果离开蜂巢思维太远，这些离群的子人口就会死亡，所以它们盘踞在了我们境内的{group}星系\n它们打算当海盗来维持自身，利用少数简陋的飞船打劫穿越该星系的不设防贸易路线。",
+                        "answer": [
+                            {
+                                "message": "他们必须被正法",
+                                "coin_event": "increase",
+                                "coin_change": 10
+                            },
+                            {
+                                "message": "让他们去吧",
+                                "coin_event": "decrease",
+                                "coin_change": 10
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "Pillager",
+                "events": [
+                    {
+                        "message": "我们在{group}星系遇到了掠夺者的舰艇，我们付出了一些代价",
+                        "answer": [
+                            {
+                                "message": "交付少量能量币",
+                                "coin_event": "decrease",
+                                "coin_change": 10
+                            },
+                            {
+                                "message": "交付大量能量币",
+                                "coin_event": "decrease",
+                                "coin_change": 50
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "special_events":{
+        "introduce": "特殊事件集",
+        "event_chains": []
+    },
+    "science_events":{
+        "introduce": "科研事件集",
+        "event_chains": []
+    },
+    "fleet_events": {
+        "introduce": "舰队事件集",
+        "event_chains": []
+    }
+}
