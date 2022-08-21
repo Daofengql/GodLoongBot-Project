@@ -1,7 +1,7 @@
 from library.config import config
 from library.orm.table import User
 from library.Bot import bot
-from library.orm.extra import mysql_db_pool
+
 
 from graia.ariadne.app import Ariadne
 from graia.ariadne.event.message import GroupMessage
@@ -25,7 +25,9 @@ from .generation import (
 )
 
 
-db = mysql_db_pool()
+from .utils import db
+
+
 PATH = os.path.dirname(__file__) + "/assets/"
 
 bot = bot()
@@ -276,8 +278,6 @@ async def convertAssets(
 
     except Exception:
         return MessageChain("目标上行计算机发生未知故障，请稍后再试")
-
-
 
 
 #崇拜
