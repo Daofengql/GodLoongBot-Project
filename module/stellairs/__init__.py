@@ -17,7 +17,7 @@ from library.image.oneui_mock.elements import *
 from graia.ariadne.message.element import Image, At, Plain, Source
 from graia.ariadne.model import Group
 import os
-from .utils import mysql_db_pool
+from library.orm.extra import mysql_db_pool
 from .utils import (
     DailySignin,
     getGroupRank,

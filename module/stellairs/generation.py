@@ -19,7 +19,8 @@ import random
 from .texts import MINYAN
 from sqlalchemy import select
 
-from .utils import db
+from library.orm.extra import mysql_db_pool
+db = mysql_db_pool()
 
 PATH = Path(__file__).parent / "assets"
 

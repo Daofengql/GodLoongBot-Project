@@ -1,7 +1,7 @@
 from library.config import config
 from library.orm.table import User
 from library.Bot import bot
-
+from library.orm.extra import mysql_db_pool
 
 from graia.ariadne.app import Ariadne
 from graia.ariadne.event.message import GroupMessage
@@ -25,9 +25,7 @@ from .generation import (
 )
 
 
-from .utils import db
-
-
+db = mysql_db_pool()
 PATH = os.path.dirname(__file__) + "/assets/"
 
 bot = bot()
