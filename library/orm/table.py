@@ -46,32 +46,6 @@ class BlacklistTable(Base):
     supplicant = Column(BIGINT, nullable=False)
 
 
-class Sign_in(Base):
-
-    __tablename__ = "signin"
-
-    id = Column(INT, nullable=False, primary_key=True, autoincrement=True, comment="id")
-    """ 用户 ID """
-
-    qq = Column(BIGINT, nullable=False, primary_key=True, comment="用户qq")
-    """ 用户qq """
-
-    lastdate = Column(
-        DateTime,
-        nullable=False,
-        default=datetime.datetime.strptime(
-            datetime.datetime.now().strftime("%Y-%m-%d 00:00:00"), "%Y-%m-%d %H:%M:%S"
-        ),
-        comment="签到日期",
-    )
-    """ 签到日期 """
-
-    days = Column(INT, nullable=False, default=0, comment="签到天数")
-    """ 签到天数 """
-
-    coin = Column(BIGINT, nullable=False, default=0, comment="用户签到积分")
-    """ 用户签到积分 """
-
 
 class Logger(Base):
 
@@ -104,101 +78,43 @@ class Logger(Base):
 
 
 class BattleLog(Base):
+    __tablename__ = 'battle_log'
 
-    __tablename__ = "battle_log"
-
-    id = Column(BIGINT(20), primary_key=True, autoincrement=True, comment="对局编号")
-    """ 对局编号 """
-
-    winner_group_id = Column(JSON, nullable=False, comment="获胜的舰队")
-    """ 获胜的舰队 """
-
-    loser_group_id = Column(JSON, nullable=False, comment="输掉对局的舰队")
-    """ 输掉对局的舰队 """
+    id = Column(BIGINT(20), primary_key=True, comment='对局编号')
+    winner_group_id = Column(JSON, nullable=False, comment='获胜的舰队')
+    loser_group_id = Column(JSON, nullable=False, comment='输掉对局的舰队')
+    time = Column(DateTime, nullable=False)
 
 
-class OwnShip(Base):
+class Fleet(Base):
+    __tablename__ = 'fleets'
 
-    __tablename__ = "own_ships"
-
-    id = Column(
-        BIGINT(20), primary_key=True, autoincrement=True, nullable=False, comment="舰船id"
-    )
-    """ 舰船id """
-
-    uid = Column(BIGINT(20), primary_key=True, nullable=False, comment="对应主人的id")
-    """ 对应主人的id """
-
-    group = Column(BIGINT(20), primary_key=True, nullable=False, comment="所属舰队")
-    """ 所属舰队 """
-
-    fire = Column(BIGINT(20), nullable=False, comment="火力值")
-    """ 火力值 """
-
-    type = Column(INTEGER(11), nullable=False, comment="舰船类型")
-    """ 舰船类型 """
-
-    isdestroyed = Column(
-        TINYINT(1), nullable=False, server_default=text("'0'"), comment="是否被摧毁，是为1，不是为0"
-    )
-    """ 是否被摧毁，是为1，不是为0 """
+    id = Column(BIGINT(20), primary_key=True, nullable=False, comment='舰队id')
+    uid = Column(BIGINT(20), primary_key=True, nullable=False, comment='对应主人的id')
+    nickname = Column(String(30, 'utf8_unicode_ci'), primary_key=True, nullable=False, comment='舰队名')
+    group = Column(BIGINT(20), primary_key=True, nullable=False, comment='所属群聊')
 
 
-class ShipGroup(Base):
+class Ship(Base):
+    __tablename__ = 'ships'
 
-    __tablename__ = "ship_groups"
-
-    id = Column(
-        BIGINT(20), primary_key=True, autoincrement=True, nullable=False, comment="舰队id"
-    )
-    """ 舰队id """
-
-    nickname = Column(
-        String(30, "utf8_unicode_ci"), primary_key=True, nullable=False, comment="舰队名"
-    )
-    """ 舰队名 """
-
-    group = Column(BIGINT(20), primary_key=True, nullable=False, comment="所属群聊")
-    """ 所属群聊 """
+    id = Column(BIGINT(20), primary_key=True, nullable=False, comment='舰船id')
+    uid = Column(BIGINT(20), primary_key=True, nullable=False, comment='对应主人的id')
+    group = Column(BIGINT(20), primary_key=True, nullable=False, comment='所属舰队')
+    fire = Column(BIGINT(20), nullable=False, comment='火力值')
+    type = Column(INTEGER(11), nullable=False, comment='舰船类型')
+    isdestroyed = Column(TINYINT(1), nullable=False, server_default=text("'0'"), comment='是否被摧毁，是为1，不是为0')
 
 
 class User(Base):
+    __tablename__ = 'users'
 
-    __tablename__ = "users"
+    id = Column(BIGINT(20), primary_key=True, nullable=False, comment='子账号')
+    qq = Column(BIGINT(20), primary_key=True, nullable=False, comment='账号')
+    group = Column(BIGINT(20), primary_key=True, nullable=False, comment='所在群聊')
+    nickname = Column(String(30, 'utf8_unicode_ci'), primary_key=True, nullable=False, comment='昵称')
+    coin = Column(BIGINT(20), nullable=False, server_default=text("'0'"), comment='持有币数')
+    iron = Column(BIGINT(20), nullable=False, comment='合金数')
+    unity = Column(BIGINT(20), nullable=False, comment='凝聚力')
+    lasttime = Column(DateTime, nullable=False)
 
-    id = Column(
-        BIGINT(20), primary_key=True, autoincrement=True, nullable=False, comment="子账号"
-    )
-    """ 子账号 """
-
-    qq = Column(BIGINT(20), primary_key=True, nullable=False, comment="账号")
-    """ 账号 """
-
-    group = Column(BIGINT(20), primary_key=True, nullable=False, comment="所在群聊")
-    """ 所在群聊 """
-
-    nickname = Column(
-        String(30, "utf8_unicode_ci"), primary_key=True, nullable=False, comment="昵称"
-    )
-    """ 昵称 """
-
-    coin = Column(
-        BIGINT(20), nullable=False, server_default=text("'0'"), comment="持有币数"
-    )
-    """ 持有币数 """
-
-    iron = Column(BIGINT(20), nullable=False, comment="合金数")
-    """ 合金数 """
-
-    unity = Column(BIGINT(20), nullable=False, comment="凝聚力")
-    """ 凝聚力 """
-
-    lasttime = Column(
-        DateTime,
-        nullable=False,
-        default=datetime.datetime.strptime(
-            datetime.datetime.now().strftime("%Y-%m-%d 00:00:00"), "%Y-%m-%d %H:%M:%S"
-        ),
-        comment="签到日期",
-    )
-    """ 签到日期 """
