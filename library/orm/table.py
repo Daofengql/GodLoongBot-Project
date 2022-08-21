@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import Column, Integer, String, DateTime, INT, TEXT, JSON, text
+from sqlalchemy import Column, Integer, String, DateTime, INT, TEXT, JSON, text, FLOAT
 from sqlalchemy.dialects.mysql import BIGINT, INTEGER, TINYINT
 
 from library.orm import Base
@@ -118,3 +118,11 @@ class User(Base):
     unity = Column(BIGINT(20), nullable=False, comment='凝聚力')
     lasttime = Column(DateTime, nullable=False)
 
+
+class ProcessTime(Base):
+    __tablename__ = "process_time"
+
+    id = Column(BIGINT, primary_key=True, nullable=False, comment="id")
+    time = Column(DateTime, nullable=False, comment="时间")
+    process_time = Column(FLOAT, nullable=False, comment="处理时间")
+    function = Column(String(100), nullable=False, comment="函数名")
