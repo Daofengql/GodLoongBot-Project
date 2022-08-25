@@ -140,21 +140,21 @@ async def _getGroupRank(
         elif types in ("能量币排行"):
             first = await session.execute(
                 select(User)
-                .where(User.group == group.id)
+                .where(User.group == group)
                 .order_by(User.coin.desc())
                 .limit(6)
             )
         elif types in ("合金排行"):
             first = await session.execute(
                 select(User)
-                .where(User.group == group.id)
+                .where(User.group == group)
                 .order_by(User.iron.desc())
                 .limit(6)
             )
         elif types in ("凝聚力排行"):
             first = await session.execute(
                 select(User)
-                .where(User.group == group.id)
+                .where(User.group == group)
                 .order_by(User.unity.desc())
                 .limit(6)
             )

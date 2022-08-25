@@ -10,6 +10,7 @@
                         "children_events":[
                             {
                                 "message":"我们派出了位于附近星系的舰队前往肃清",
+                                "children_events": [],
                                 "answer": [
                                     {
                                         "message": "他们被我们的舰队解决了",
@@ -25,6 +26,7 @@
                             },
                             {
                                 "message": "我们在附近星系没有任何一只军用舰队可以调度，来自主星的舰队正在到来的路上",
+                                "children_events": [],
                                 "answer": [
                                     {
                                         "message": "他们被我们的舰队解决了",
