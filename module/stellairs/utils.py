@@ -40,6 +40,13 @@ async def checktime(result: User) -> bool:
         - result.lasttime
     ) > datetime.timedelta(seconds=4)
 
+# 检查时间是否在夜间保护时间内
+async def checktimeIfInNight() -> bool :
+    start_time = datetime.datetime.strptime(str(datetime.datetime.now().date()) + '23:50', '%Y-%m-%d%H:%M')
+    end_time = start_time + datetime.timedelta(hours=1,minutes=10)
+    if start_time < datetime.datetime.now() < end_time:
+        return True
+    return False
 
 # 签到
 async def DailySignin(
@@ -47,6 +54,10 @@ async def DailySignin(
 ) -> MessageChain:
     """进行签到获取积分"""
     ##判断是否正在使用
+    if await checktimeIfInNight():
+        return MessageChain(
+            Plain("在当日23:50分至次日1时之间，签到功能将暂使用。系统将在后台统计签到数据")
+        )
     detail = await event.sender.get_profile()
     avatar = await event.sender.get_avatar()
     dbsession = await db.get_db_session()
