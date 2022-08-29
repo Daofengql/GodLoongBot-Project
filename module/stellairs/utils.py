@@ -42,10 +42,13 @@ async def checktime(result: User) -> bool:
 
 # 检查时间是否在夜间保护时间内
 async def checktimeIfInNight() -> bool :
-    start_time = datetime.datetime.strptime(str(datetime.datetime.now().date()) + '23:50', '%Y-%m-%d%H:%M')
-    end_time = start_time + datetime.timedelta(hours=1,minutes=10)
-    if start_time < datetime.datetime.now() < end_time:
-        return True
+    now = datetime.datetime.strptime('2022-08-3000:00', '%Y-%m-%d%H:%M')
+    start_time = datetime.datetime.strptime(str(now.date()) + '23:50', '%Y-%m-%d%H:%M')
+    end_time = start_time + datetime.timedelta(minutes=10)
+    if start_time < now < end_time: return True
+    start_time = datetime.datetime.strptime(str(now.date()) + '00:00', '%Y-%m-%d%H:%M')
+    end_time = start_time + datetime.timedelta(hours=1)
+    if start_time <= now <= end_time: return True
     return False
 
 # 签到
