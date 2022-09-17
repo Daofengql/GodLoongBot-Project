@@ -10,6 +10,7 @@ from library.Bot import bot
 
 from graia.saya import Channel
 from graia.ariadne.event.message import GroupMessage
+from graia.ariadne.event.mirai import GroupRecallEvent
 from graia.ariadne.message.chain import MessageChain
 from graia.saya.builtins.broadcast import ListenerSchema
 from graia.broadcast.interrupt import Waiter, InterruptControl
@@ -27,6 +28,7 @@ from .utils import (
     convertAssets
 )
 import aiofiles
+import asyncio
 
 stellairs = Channel.current()
 
@@ -88,25 +90,53 @@ async def stellairs_handle(
     param = param.result.display
     func = func.result.display
 
+    #撤回终止命令检测
+    @Waiter.create_using_function(listening_events=[GroupRecallEvent])
+    async def waiter(e: GroupRecallEvent):
+        if e.message_id == message.get_first(Source).id: return True
+    try:
+        status = await asyncio.wait_for(
+            InterruptControl(app.broadcast).wait(waiter), 4
+        )
+        #如果有撤回事件响应，则终止等待，return返回结束处理
+        if status:
+            await app.send_group_message(
+                group, 
+                MessageChain(
+                    Plain("用户撤回了命令，操作已终止")
+                ),
+                quote=message.get_first(Source)
+            )
+            return
+    except asyncio.exceptions.TimeoutError:
+        #如果检测撤回超时则意味着等待结束，开始进行正式任务处理
+        pass
+    
+
+
     aioHTTPsession = Ariadne.service.client_session
 
+    #签到功能
     if func in ("-Signin", "获取今日能量币", "签到"):
         ret = await DailySignin(app, group, event)
 
-    elif func in ("-MyInfo", "我的信息"):
+    #获取用户自身信息
+    elif func in ("-MyInfo", "我的信息"):   
         ret = await getMyInfo(app, group, event)
 
+    #用户主动刷新数据库名字
     elif func in ("-ChangeMyInfo", "更新名字"):
         ret = await changeMyName(group, event)
 
+    #崇拜获取凝聚力，开发中
     elif func in ("-Worhip","崇拜"):
         ret = await worShip(app, group, event,message)
 
-    elif func in ("-Convert","兑换") and param in (
-        "合金",
-    ):
+    #泛星系贸易市场，进行资源兑换
+    elif func in ("-Convert","兑换") and param in ("合金"):
         ret = await convertAssets(app, group, event,param)
 
+    #获取综合排名，各项资源排名
     elif func in ("-LocalRank", "本星海排名") and param in (
         "",
         "综合排名",
@@ -115,14 +145,19 @@ async def stellairs_handle(
         "凝聚力排行",
     ):
         ret = await getGroupRank(app, group, param)
+
+    #彩蛋，控制台功能恶搞
     elif func in ("~", "控制台"):
         async with aiofiles.open(PATH + "another/~.gif", "rb") as f:
             ret = MessageChain(
                 Image(data_bytes=await f.read()), Plain(f"想啥呢，这是多人联机，哪来的💀第四天灾（")
             )
+
+    #终止序列
     else:
         ret = MessageChain(f"啊哦，顾问{config.name}不知道您想干嘛")
 
+    #规定ret变量为消息链返回参数，所有功能的结束都返回一个消息链赋值给ret用于状态显示
     await app.send_group_message(
         group, 
         ret,
