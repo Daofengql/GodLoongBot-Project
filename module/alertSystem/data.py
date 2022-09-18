@@ -1,4 +1,12 @@
 import xmltojson
+from library.config import config
+from library.orm.table import Sub
+from library.Bot import bot
+from library.orm.extra import mysql_db_pool
+
+
+db = mysql_db_pool()
+bot = bot()
 
 async def parse_data(xml_CEIC:str) -> list:
     tmp = xmltojson.xmltodict.parse(xml_CEIC)
@@ -19,6 +27,9 @@ async def parse_data(xml_CEIC:str) -> list:
     return result
 
 async def get_sub_group(func:str):
+    dbsession = await db.get_db_session()
+    async with dbsession() as session:
+        pass
     if func == "eq":
         #返回地震播报订阅群列表
         return [438991075]

@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import Column, Integer, String, DateTime, INT, TEXT, JSON, text
+from sqlalchemy import Column, Integer, String, DateTime, INT, TEXT, JSON, Text,text
 from sqlalchemy.dialects.mysql import BIGINT, INTEGER, TINYINT
 
 from library.orm import Base
@@ -117,4 +117,11 @@ class User(Base):
     iron = Column(BIGINT(20), nullable=False, comment='合金数')
     unity = Column(BIGINT(20), nullable=False, comment='凝聚力')
     lasttime = Column(DateTime, nullable=False)
+
+
+class Sub(Base):
+    __tablename__ = 'sub'
+
+    group = Column(BIGINT(20), primary_key=True, comment='群号')
+    subfuc = Column(Text(collation='utf8_unicode_ci'), nullable=False, comment='订阅功能的名称')
 
