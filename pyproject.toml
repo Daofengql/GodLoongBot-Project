@@ -24,8 +24,10 @@ psutil = "^5.9.1"
 sqlalchemy = "^1.4.39"
 aiohttp = "^3.8.1"
 aiosqlite = "^0.17.0"
-graia-ariadne = {extras = ["full"], version = "^0.8.2"}
+graia-ariadne = {extras = ["full"], version = "^0.8.4"}
 pyinstall = "^0.1.4"
+xmltojson = "^2.0.1"
+utils = "^1.0.1"
 
 [tool.poetry.dev-dependencies]
 
