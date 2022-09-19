@@ -123,5 +123,5 @@ class Sub(Base):
     __tablename__ = 'sub'
 
     group = Column(BIGINT(20), primary_key=True, comment='群号')
-    subfuc = Column(Text(collation='utf8_unicode_ci'), nullable=False, comment='订阅功能的名称')
+    subfuc = Column(Text(), nullable=False, comment='订阅功能的名称')
 

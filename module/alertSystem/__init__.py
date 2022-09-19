@@ -1,17 +1,25 @@
 import asyncio
-import aiofiles
-
 import aiohttp
+from collections import deque
+from library.config import config
 
 from graia.ariadne.app import Ariadne
-
-from collections import deque
 from graia.ariadne.message.element import Image, At, Plain, Source, AtAll
+from graia.ariadne.event.message import GroupMessage
+from graia.ariadne.message.chain import MessageChain
+from graia.saya.builtins.broadcast import ListenerSchema
 from graia.ariadne.model import Group
 from graia.scheduler import timers
 from graia.scheduler.saya import SchedulerSchema
 from graia.saya import Channel
-from .data import get_sub_group,parse_eq_data
+from graia.ariadne.message.parser.twilight import (
+    Twilight,
+    UnionMatch,
+    MatchResult,
+    WildcardMatch,
+)
+
+from .data import get_sub_group, parse_eq_data, change_sub_status
 
 aleater = Channel.current()
 
@@ -32,7 +40,7 @@ async def init():
 loop = asyncio.get_event_loop()
 loop.run_until_complete(init())
 
-@aleater.use(SchedulerSchema(timers.every_custom_seconds(10)))
+@aleater.use(SchedulerSchema(timers.every_custom_seconds(50)))
 async def every_minute_speaking(app: Ariadne):
     global INIT_LIST
 
@@ -55,6 +63,78 @@ async def every_minute_speaking(app: Ariadne):
                     target=group,
                     message=message
                 )
-            
-            
-            
+
+
+@aleater.use(
+    ListenerSchema(
+        listening_events=[GroupMessage],
+        inline_dispatchers=[
+            Twilight(
+                [
+                    UnionMatch("消息订阅管理", ".sub").help("主控制器"),
+                    UnionMatch(
+                        "-EarthQuack","地震通知"
+                    ) @ "func",
+                    UnionMatch(
+                        "开启","enable",
+                        "关闭","disable",
+                        "状态","status",
+                    ) @ "do"
+                ]
+            )
+        ],
+    )
+)
+async def sub_system_controller(
+    app: Ariadne,
+    group: Group,
+    event: GroupMessage,
+    do: MatchResult,
+    func: MatchResult,):
+
+    do = do.result.display
+    func = func.result.display
+
+
+    if do in ("开启","enable"):
+        do = "enable"
+    elif do in ("关闭","disable"):
+        do = "disable"
+    elif do in ("状态","status"):
+        do = "status"
+
+    funcname = ""
+    if func in ("-EarthQuack","地震通知"):
+        func = "eq"
+        funcname = "地震通知推送"
+        
+    member = await app.get_member(
+        group=group,
+        member_id=event.sender.id
+    )
+
+    if member.permission == "MEMBER" or event.sender.id not in config.owners:
+        await app.send_group_message(
+            target=group,
+            message=MessageChain(
+                Plain(f"您的权限不足，请联系群管理员以上权限者或机器人主人来操作此命令")
+            )
+        )
+        return
+    
+    s = await change_sub_status(func,group=group.id,status=do)
+    
+    if s:
+        await app.send_group_message(
+            target=group,
+            message=MessageChain(
+                Plain(f"<{funcname}>已经在本群开启")
+            )
+        )
+    else:
+        await app.send_group_message(
+            target=group,
+            message=MessageChain(
+                Plain(f"<{funcname}>已经在本群关闭")
+            )
+        )
