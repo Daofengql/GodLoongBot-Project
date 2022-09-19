@@ -16,7 +16,7 @@ import os
 from sqlalchemy import select, insert
 import random
 import datetime
-
+import re
 import asyncio
 
 from .generation import (
@@ -24,7 +24,7 @@ from .generation import (
     genRankPic,
 )
 
-
+pattern = re.compile(r'[\u4e00-\u9fa5A-Za-z0-9^=?$\x22.]+')
 db = mysql_db_pool()
 PATH = os.path.dirname(__file__) + "/assets/"
 
@@ -56,6 +56,9 @@ async def DailySignin(
     app: Ariadne,group: Group,event: GroupMessage,
 ) -> MessageChain:
     """进行签到获取积分"""
+
+    
+
     ##判断是否正在使用
     if await checktimeIfInNight():
         return MessageChain(
@@ -89,6 +92,14 @@ async def DailySignin(
                 quote=event.message_chain.get_first(Source),
             )
 
+
+            ##判断用户昵称是否合法，并提取合法内容
+            
+
+            name = str(pattern.search(event.sender.name.strip()).group())
+            name = name[:15]
+
+    
             # 开始加入数据库
             coinincrease = 2 * random.randint(energy_range[0], energy_range[1])
             await session.execute(
@@ -100,7 +111,7 @@ async def DailySignin(
                         "%Y-%m-%d %H:%M:%S",
                     ),
                     coin=coinincrease,
-                    nickname=event.sender.name,
+                    nickname=name,
                     iron=0,
                     unity=100,
                 )
@@ -308,7 +319,6 @@ async def changeMyName(
     group: Group, event: GroupMessage
 ) -> MessageChain:
     """刷新数据库中的名字"""
-    name = event.sender.name
     dbsession = await db.get_db_session()
     async with dbsession() as session:
         first = await session.execute(
@@ -321,6 +331,11 @@ async def changeMyName(
         if not first:
             return MessageChain("本星海中没有您的记录，请使用   逐鹿星河 签到   或   .Galaxy -Signin   来注册您的账号")
         first: User = first[0]
+        ##判断用户昵称是否合法，并提取合法内容
+            
+
+        name = str(pattern.search(event.sender.name.strip()).group())
+        name = name[:15]
         first.nickname = name
         await session.commit()
         return MessageChain("您在本星海的昵称已经跟具当前群昵称刷新")

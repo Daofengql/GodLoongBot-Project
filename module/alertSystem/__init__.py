@@ -11,7 +11,7 @@ from graia.ariadne.model import Group
 from graia.scheduler import timers
 from graia.scheduler.saya import SchedulerSchema
 from graia.saya import Channel
-from .data import get_sub_group,parse_data
+from .data import get_sub_group,parse_eq_data
 
 aleater = Channel.current()
 
@@ -25,7 +25,7 @@ async def init():
         async with session.get("http://www.ceic.ac.cn/daochu/id:1") as response:
             x1 = await response.text()
 
-        INIT_LIST = await parse_data(x1)
+        INIT_LIST = await parse_eq_data(x1)
 
 
 
@@ -43,7 +43,7 @@ async def every_minute_speaking(app: Ariadne):
     async with session.get("http://www.ceic.ac.cn/daochu/id:1") as response:
         x2 = await response.text()
 
-    x2 = await parse_data(x2)
+    x2 = await parse_eq_data(x2)
 
     for i in x2:
         if i not in INIT_LIST:
