@@ -66,10 +66,12 @@ async def every_minute_speaking(app: Ariadne):
             message = f"根据中国地震台网速报：{i['time']} 在 {i['addr']} （{i['longitude']}° {i['latitude']}°）发生里氏 {i['level']}级地震，震源深度{i['depth']}KM \n本数据来源中国地震台网，http://www.ceic.ac.cn，正式数据以官方通知为准"
             
             for group in subgroup:
-                await app.send_group_message(
-                    target=group,
-                    message=message
-                )
+                try:
+                    await app.send_group_message(
+                        target=group,
+                        message=message
+                    )
+                except:pass
 
 
 @aleater.use(
