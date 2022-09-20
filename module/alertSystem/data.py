@@ -1,5 +1,6 @@
-from re import T
+
 import xmltojson
+import aiocache
 from library.config import config
 from library.orm.table import Sub
 from library.Bot import bot
@@ -9,6 +10,8 @@ from sqlalchemy import select, insert,delete
 db = mysql_db_pool()
 bot = bot()
 
+
+@aiocache.cached(ttl=3600)
 async def parse_eq_data(xml_CEIC:str) -> list:
     tmp = xmltojson.xmltodict.parse(xml_CEIC)
     result = []

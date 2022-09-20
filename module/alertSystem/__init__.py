@@ -29,9 +29,12 @@ INIT_LIST = deque(maxlen=150)
 async def init():
     global INIT_LIST
     async with aiohttp.ClientSession() as session:
-            
-        async with session.get("http://www.ceic.ac.cn/daochu/id:1") as response:
-            x1 = await response.text()
+        for _ in range(1,6):
+            try:
+                async with session.get("http://www.ceic.ac.cn/daochu/id:1") as response:
+                    x1 = await response.text()
+            except:pass
+            else:break
 
         INIT_LIST = await parse_eq_data(x1)
 
@@ -40,7 +43,7 @@ async def init():
 loop = asyncio.get_event_loop()
 loop.run_until_complete(init())
 
-@aleater.use(SchedulerSchema(timers.every_custom_seconds(50)))
+@aleater.use(SchedulerSchema(timers.every_custom_seconds(120)))
 async def every_minute_speaking(app: Ariadne):
     global INIT_LIST
 
@@ -48,8 +51,12 @@ async def every_minute_speaking(app: Ariadne):
 
     subgroup = await get_sub_group("eq")
     
-    async with session.get("http://www.ceic.ac.cn/daochu/id:1") as response:
-        x2 = await response.text()
+    for _ in range(1,6):
+        try:
+            async with session.get("http://www.ceic.ac.cn/daochu/id:1") as response:
+                x2 = await response.text()
+        except:pass
+        else:break
 
     x2 = await parse_eq_data(x2)
 
