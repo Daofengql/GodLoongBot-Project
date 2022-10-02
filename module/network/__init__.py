@@ -13,7 +13,7 @@ from graia.ariadne.message.parser.twilight import (
     RegexMatch,
 )
 
-from .utils import pingip, tcpingip,dnsrecord
+from .utils import pingip, tcpingip,dnsrecord,whois
 
 net = Channel.current()
 
@@ -31,7 +31,8 @@ net.description("网络功能插件")
                     UnionMatch(
                         "-ping",
                         "-tcping",
-                        "-dns"
+                        "-dns",
+                        "-whois"
                         ) @ "func",
                     RegexMatch(r"[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?") @ "addr",
                     WildcardMatch() @ "port"
@@ -52,17 +53,22 @@ async def pingmod(
     addr = addr.result.display
     port = port.result.display
 
-    if func == "-ping":
-        rely = await pingip(addr)
-    elif func == "-tcping" and port:
-        try:
+    try:
+        if func == "-ping":
+            rely = await pingip(addr)
+        elif func == "-tcping" and port:
+
             rely = await tcpingip(addr,port)
-        except:
-            rely = "很抱歉，tcping异常"
-    elif func == "-dns":
-        rely = await dnsrecord(addr,port)
-    else:
-        rely = "很抱歉，未知的操作"
+        elif func == "-dns":
+            rely = await dnsrecord(addr,port)
+
+        elif func == "-whois":
+            rely = await whois(addr)
+
+        else:
+            rely = "很抱歉，未知的操作"
+    except:
+        rely = "操作异常"
 
     await app.send_group_message(
         target=group,

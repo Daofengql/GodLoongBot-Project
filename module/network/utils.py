@@ -8,7 +8,7 @@ from library.image.oneui_mock.elements import Column,GeneralBox,Banner,Header,On
 from aiocache import cached
 import asyncio
 
-import json,re
+import re
 
 
 pattern = re.compile(r'[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?')
@@ -128,7 +128,7 @@ async def dnsrecord(
     
     session = Ariadne.service.client_session
     async with session.get('https://dns.alidns.com/resolve',params=par) as response:
-        result = json.loads(await response.text())
+        result = await response.json()
         try:
             if result["code"]:box.add("检测错误", result["code"])
         except:pass
@@ -145,3 +145,63 @@ async def dnsrecord(
     rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))
     rendered_bytes= rendered_bytes[0]
     return MessageChain(Image(data_bytes=rendered_bytes))
+
+
+
+@cached(ttl=3600*24)
+async def whois(
+    domain
+)->MessageChain:
+    session = Ariadne.service.client_session
+
+    column = Column(Banner("Whois查询"), Header("查询返回", "基于DnspodAPI返回数据"))
+    
+
+    async with session.post('https://www.dnspod.cn/cgi/qcwss?action=getWhoisInfo',json={"domain":domain}) as response:
+        result:dict = await response.json()
+        result = result["result"]
+
+        if "Error" in result:
+            box = GeneralBox()
+            box.add("检测错误","")
+            column.add(box)
+            mock = OneUIMock(column)
+        else:
+            box1 = GeneralBox()
+            box2 = GeneralBox()
+            result = result["WhoisInfo"]
+            dns = ""
+            for tmp in result["DnsServer"]:
+                dns = dns+tmp+"\n"
+            box1.add(f"Dns服务器：\n{dns}","DnsServer")
+
+            Registrar = ""
+            for tmp in result["Registrar"]:
+                Registrar = Registrar+tmp+"\n"
+            box1.add(f"注册商：\n{Registrar}","Registrar")
+
+            box1.add(f"注册时间：{result['RegistrationDate']}","RegistrationDate")
+            box1.add(f"到期时间：{result['ExpirationDate']}","ExpirationDate")
+
+            RegistrantEmail = ""
+            for tmp in result["RegistrantEmail"]:
+                RegistrantEmail = RegistrantEmail+tmp+"\n"
+            box1.add(f"注册邮箱：\n{RegistrantEmail}","RegistrantEmail")
+
+            box1.add(f"DNSSEC状态：{result['DNSSEC']}","DNSSEC")
+
+            DomainStatus = ""
+            for tmp in result["DomainStatus"]:
+                DomainStatus = DomainStatus+tmp+"\n"
+            box1.add(f"域名状态：\n{DomainStatus}","DomainStatus")
+
+            box2.add(f"RAW：\n{result['Raw'][0]}","原始注册信息")
+
+            column.add(box1)
+            column.add(box2)
+            mock = OneUIMock(column)
+        rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))
+        rendered_bytes= rendered_bytes[0]
+        return MessageChain(Image(data_bytes=rendered_bytes))
+
+
