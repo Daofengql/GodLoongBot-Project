@@ -2,7 +2,16 @@ import time
 from socket import *
 from graia.ariadne.app import Ariadne
 from ping3 import ping
- 
+from graia.ariadne.message.chain import MessageChain
+from graia.ariadne.message.element import At, Image, Source, Plain
+from library.image.oneui_mock.elements import Column,GeneralBox,Banner,Header,OneUIMock
+from aiocache import cached
+import asyncio
+
+import json,re
+
+
+pattern = re.compile(r'[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?')
 
 
 class tcping(object):
@@ -34,7 +43,9 @@ async def ipinfo(args):
     async with session.get(url, headers = headers,timeout=120) as response1:
         return {"code":1,"Msg":"成功","data":(await response1.json())["info"]}
 
-async def pingip(arg):
+
+@cached(ttl=300)
+async def pingip(arg)->MessageChain:
     args = str(arg).strip()
     pingw = pings(args)
     info = await ipinfo(pingw['ip'])
@@ -44,10 +55,26 @@ async def pingip(arg):
             city = info["data"]["isp"]
         except:addr = city = "查询失败"
     else:addr = city = "查询失败"
-    rely = f"\nIP/域名：{pingw['host']}\n响应ip：{pingw['ip']}\n延迟：{pingw['delay']}\n物理地址：{addr}\nISP：{city}"
-    return rely
 
-async def tcpingip(host,port):
+    column = Column(Banner("Ping查询"), Header("查询返回", "基于位于东京的机器人检测网络返回数据"))
+    box = GeneralBox()
+    box.add(f"IP/域名：{pingw['host']}","")
+    box.add(f"响应ip：{pingw['ip']}","")
+    box.add(f"延迟：{pingw['delay']}","")
+    box.add(f"物理地址：{addr}","")
+    box.add(f"ISP：{city}","")
+    column.add(box)
+    mock = OneUIMock(column)
+    rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))
+    rendered_bytes= rendered_bytes[0]
+    return MessageChain(
+        Image(data_bytes=rendered_bytes)
+
+    )
+
+
+@cached(ttl=300)
+async def tcpingip(host,port)->MessageChain:
     
     time = tpi.tcping(host,int(port))#取得端口延迟
     #解析域名或ip得到实际ip
@@ -64,6 +91,57 @@ async def tcpingip(host,port):
         except:addr = city = "查询失败"
     else:addr = city = "查询失败"
     
+    column = Column(Banner("Tcping查询"), Header("查询返回", "基于位于东京的机器人检测网络返回数据"))
+    box = GeneralBox()
+    box.add(f"IP/域名：{host}","")
+    box.add(f"指向ip：{ip_address}","")
+    box.add(f"端口:{port}","")
+    box.add(f"延迟：{time}","")
+    box.add(f"物理地址：{addr}","")
+    box.add(f"ISP：{city}","")
+    column.add(box)
+    mock = OneUIMock(column)
+    rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))
+    rendered_bytes= rendered_bytes[0]
+    return MessageChain(
+        Image(data_bytes=rendered_bytes)
+
+    )
+
+
+
+@cached(ttl=1200)
+async def dnsrecord(
+    domain, 
+    ip
+    )->MessageChain:
+
+    par = {"name":domain}
     
-    rely = f"\nIP/域名：{host}\n指向ip：{ip_address}\n端口:{port}\n延迟：{time}\n物理地址：{addr}\nISP：{city}"
-    return rely
+    box = GeneralBox()
+    if ip and pattern.search(ip):
+        par["edns_client_subnet"] = pattern.search(ip).group()
+        box.add("使用了特定的公网地址查询解析", f"地址：{pattern.search(ip).group()}")
+    
+    
+    column = Column(Banner("DNS查询"), Header("查询返回", "基于寒武天机的全球DOH检测网络返回数据"))
+    
+    session = Ariadne.service.client_session
+    async with session.get('https://dns.alidns.com/resolve',params=par) as response:
+        result = json.loads(await response.text())
+        try:
+            if result["code"]:box.add("检测错误", result["code"])
+        except:pass
+        try:
+            for res in result["Answer"]:
+                if res['type'] == 1:typ = "A"
+                elif res['type'] == 5 :typ = "CNAME"
+                elif res['type'] == 6 :typ = "NS"
+                else:typ = "其他"
+                box.add(f"响应：{res['data']}  TTL={res['TTL']}",f"上级节点：{res['name']} 解析类型：{typ}")
+        except:box.add("检测错误","")
+    column.add(box)
+    mock = OneUIMock(column)
+    rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))
+    rendered_bytes= rendered_bytes[0]
+    return MessageChain(Image(data_bytes=rendered_bytes))
