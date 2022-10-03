@@ -13,7 +13,7 @@ from graia.ariadne.message.parser.twilight import (
     RegexMatch,
 )
 
-from .utils import pingip, tcpingip,dnsrecord,whois
+from .utils import pingip, tcpingip,dnsrecord,whois,aton
 
 net = Channel.current()
 
@@ -32,7 +32,8 @@ net.description("网络功能插件")
                         "-ping",
                         "-tcping",
                         "-dns",
-                        "-whois"
+                        "-whois",
+                        "-aton"
                         ) @ "func",
                     RegexMatch(r"[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?") @ "addr",
                     WildcardMatch() @ "port"
@@ -65,6 +66,9 @@ async def pingmod(
         elif func == "-whois":
             rely = await whois(addr)
 
+        elif func == "-aton":
+            rely = await aton(addr)
+
         else:
             rely = "很抱歉，未知的操作"
     except:
@@ -74,6 +78,4 @@ async def pingmod(
         target=group,
         quote=message.get_first(Source),
         message=rely
-        )
-
-        
+    )

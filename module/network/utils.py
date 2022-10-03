@@ -1,3 +1,4 @@
+from ast import BinOp
 import time
 from socket import *
 from graia.ariadne.app import Ariadne
@@ -7,7 +8,7 @@ from graia.ariadne.message.element import At, Image, Source, Plain
 from library.image.oneui_mock.elements import Column,GeneralBox,Banner,Header,OneUIMock
 from aiocache import cached
 import asyncio
-
+import ipaddress
 import re
 
 
@@ -205,3 +206,20 @@ async def whois(
         return MessageChain(Image(data_bytes=rendered_bytes))
 
 
+async def aton(addr)->MessageChain:
+    try:
+        ip_address = gethostbyname(addr)
+        tip = int(ipaddress.IPv4Address(ip_address))
+        bip = str(bin(tip))[2:]
+        bip=re.findall(r'.{8}',bip) 
+        bip=' '.join(bip) 
+    except:
+        ip_address = "域名或ip解析错误"
+        tip = "域名或ip解析错误"
+        bip = "域名或ip解析错误"
+    
+    return MessageChain(
+        Plain(f"转换前ip:{ip_address}\n"),
+        Plain(f"十进制转换:{tip}\n"),
+        Plain(f"二进制转换:{bip}")
+    )

@@ -51,19 +51,15 @@ class Logger(Base):
 
     __tablename__ = "logger"
 
-    id = Column(
-        BIGINT, nullable=False, primary_key=True, autoincrement=True, comment="id"
-    )
-    """ ID """
-
-    group = Column(BIGINT, nullable=False, primary_key=True, comment="群号")
-    """ 群号 """
-
-    qq = Column(BIGINT, nullable=False, primary_key=True, comment="发信QQ")
-    """ 发信QQ """
 
     msgid = Column(BIGINT, nullable=False, primary_key=True, comment="消息编号")
     """ 消息编号 """
+
+    group = Column(BIGINT, nullable=False, comment="群号")
+    """ 群号 """
+
+    qq = Column(BIGINT, nullable=False,  comment="发信QQ")
+    """ 发信QQ """
 
     msg = Column(TEXT, nullable=False, comment="消息内容")
     """ 消息内容 """
@@ -110,9 +106,9 @@ class User(Base):
     __tablename__ = 'users'
 
     id = Column(BIGINT(20), primary_key=True, nullable=False, comment='子账号')
-    qq = Column(BIGINT(20), primary_key=True, nullable=False, comment='账号')
-    group = Column(BIGINT(20), primary_key=True, nullable=False, comment='所在群聊')
-    nickname = Column(String(30, 'utf8_unicode_ci'), primary_key=True, nullable=False, comment='昵称')
+    qq = Column(BIGINT(20), nullable=False, comment='账号')
+    group = Column(BIGINT(20), nullable=False, comment='所在群聊')
+    nickname = Column(String(30, 'utf8_unicode_ci'), nullable=False, comment='昵称')
     coin = Column(BIGINT(20), nullable=False, server_default=text("'0'"), comment='持有币数')
     iron = Column(BIGINT(20), nullable=False, comment='合金数')
     unity = Column(BIGINT(20), nullable=False, comment='凝聚力')
