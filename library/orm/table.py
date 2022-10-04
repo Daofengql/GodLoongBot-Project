@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import Column, Integer, String, DateTime, INT, TEXT, JSON, Text,text
+from sqlalchemy import Column, Integer, String, DateTime, INT, TEXT, JSON, Text,text,BLOB
 from sqlalchemy.dialects.mysql import BIGINT, INTEGER, TINYINT
 
 from library.orm import Base
@@ -61,11 +61,8 @@ class Logger(Base):
     qq = Column(BIGINT, nullable=False,  comment="发信QQ")
     """ 发信QQ """
 
-    msg = Column(TEXT, nullable=False, comment="消息内容")
+    msg = Column(BLOB, nullable=False, comment="MessageChain")
     """ 消息内容 """
-
-    msgimage = Column(TEXT, nullable=True, comment="消息编号")
-    """ 消息编号 """
 
     sendtime = Column(
         DateTime, nullable=False, default=datetime.datetime.now(), comment="签到日期"
