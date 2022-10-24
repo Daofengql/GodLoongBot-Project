@@ -6,7 +6,6 @@ from graia.ariadne.message.parser.twilight import (
     MatchResult,
     WildcardMatch,
 )
-from library.Bot import bot
 
 from graia.saya import Channel
 from graia.ariadne.event.message import GroupMessage
@@ -25,10 +24,12 @@ from .utils import (
     getMyInfo,
     worShip,
     changeMyName,
-    convertAssets
+    convertAssets,
+    authcode
 )
 import aiofiles
 import asyncio
+import random
 
 stellairs = Channel.current()
 
@@ -90,27 +91,40 @@ async def stellairs_handle(
     param = param.result.display
     func = func.result.display
 
+    capcode = await authcode(8)
+    tmpmessageid = await app.send_group_message(
+        group,
+        MessageChain(
+            Plain(f"当前操作需要人机验证，请在40秒内发送如下字符串：{capcode}")
+        ),
+        quote=message.get_first(Source)
+    )
+
     #撤回终止命令检测
-    @Waiter.create_using_function(listening_events=[GroupRecallEvent])
-    async def waiter(e: GroupRecallEvent):
-        if e.message_id == message.get_first(Source).id: return True
+    @Waiter.create_using_function(listening_events=[GroupMessage])
+    async def waiter(waiter_message: MessageChain, g: Group, e: GroupMessage):
+        if e.sender.id == event.sender.id and g.id == group.id:
+            saying = waiter_message.display
+            if saying == str(capcode):
+                return True
     try:
         status = await asyncio.wait_for(
-            InterruptControl(app.broadcast).wait(waiter), 4
+            InterruptControl(app.broadcast).wait(waiter), 40
         )
         #如果有撤回事件响应，则终止等待，return返回结束处理
         if status:
-            await app.send_group_message(
-                group, 
-                MessageChain(
-                    Plain("用户撤回了命令，操作已终止")
-                ),
-                quote=message.get_first(Source)
-            )
-            return
+            await app.recall_message(message=tmpmessageid.id,target=group)
     except asyncio.exceptions.TimeoutError:
         #如果检测撤回超时则意味着等待结束，开始进行正式任务处理
-        pass
+        await app.send_group_message(
+            group,
+            MessageChain(
+                Plain(f"验证超时")
+            ),
+            quote=message.get_first(Source)
+        )
+        await app.recall_message(message=tmpmessageid.id,target=group)
+        return
     
 
 

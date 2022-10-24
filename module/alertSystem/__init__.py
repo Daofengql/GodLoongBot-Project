@@ -19,6 +19,8 @@ from graia.ariadne.message.parser.twilight import (
     WildcardMatch,
 )
 
+
+
 from .data import get_sub_group, parse_eq_data, change_sub_status
 
 aleater = Channel.current()
@@ -147,3 +149,21 @@ async def sub_system_controller(
                 Plain(f"<{funcname}>已经在本群关闭")
             )
         )
+from library.orm.extra import mysql_db_pool
+
+db = mysql_db_pool()
+        
+@aleater.use(SchedulerSchema(timers.every_custom_hours(24)))
+async def clear_user(app: Ariadne):
+
+    group = await app.get_group_list()
+    g = [i.id for i in group]
+
+
+
+    dbsession = await db.get_db_session()
+    async with dbsession() as session:
+        await session.execute(
+            f"""DELETE FROM `users` WHERE `group` not  in {str(tuple(g))};"""
+        )
+        await session.commit()

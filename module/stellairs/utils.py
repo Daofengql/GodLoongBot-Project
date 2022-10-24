@@ -357,7 +357,15 @@ async def changeMyName(
         return MessageChain("您在本星海的昵称已经跟具当前群昵称刷新")
 
 
-        
+    
+
+async def authcode(len):
+    code_list = []
+    for i in range(10):
+        code_list.append(str(i))  #生成数字
+    r = random.sample(code_list, len)   
+    m = ''.join(r)
+    return m
 
 
 
