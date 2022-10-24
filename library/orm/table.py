@@ -110,6 +110,8 @@ class User(Base):
     iron = Column(BIGINT(20), nullable=False, comment='合金数')
     unity = Column(BIGINT(20), nullable=False, comment='凝聚力')
     lasttime = Column(DateTime, nullable=False)
+    species = Column(BIGINT(20), nullable=False,default=1, comment='物种id')
+
 
 
 class Sub(Base):

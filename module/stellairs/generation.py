@@ -1,8 +1,12 @@
 import asyncio
-from io import BytesIO
+
 from pathlib import Path
+from graia.ariadne import Ariadne
 
 import PIL.Image as PImage
+
+from io import BytesIO
+
 
 from library.image.oneui_mock.elements import (
     Banner,
@@ -15,8 +19,6 @@ from library.image.oneui_mock.elements import (
 from library.orm.table import User
 import aiocache
 
-import random
-from .texts import MINYAN
 from sqlalchemy import select
 
 from library.orm.extra import mysql_db_pool
@@ -37,7 +39,7 @@ For as long as I shall live.\n
 至死方休！！
 """
 
-
+"""
 # 生成信息图片
 @aiocache.cached(ttl=1800)
 async def genSignPic(
@@ -79,6 +81,21 @@ async def genSignPic(
     rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))
     rendered_bytes = rendered_bytes[0]
     return rendered_bytes
+"""
+@aiocache.cached(ttl=1800)
+async def genSignPic(
+    group:int, nickname:str, coin:int, iron:int, unity:int,id:int
+) -> bytes:
+
+    session = Ariadne.service.client_session
+    async with session.get(f"https://v1.loongapi.com/v1/bot/stellairs/species/card/image?name={nickname}&id={id}&cash={coin}&alloys={iron}&unity={unity}&group={group}") as resp:
+        img = PImage.open(BytesIO(await resp.content.read()))
+        b = BytesIO()
+        img.save(b,format="PNG")
+        b.seek(0)
+        return b.read()
+       
+    
 
 @aiocache.cached(ttl=600)
 async def genRankPic(group,types:str) -> bytes:

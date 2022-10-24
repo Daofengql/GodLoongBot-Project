@@ -102,6 +102,9 @@ async def DailySignin(
     
             # 开始加入数据库
             coinincrease = 2 * random.randint(energy_range[0], energy_range[1])
+
+            species = random.randint(1,200)
+
             await session.execute(
                 insert(User).values(
                     qq=event.sender.id,
@@ -114,9 +117,10 @@ async def DailySignin(
                     nickname=name,
                     iron=0,
                     unity=100,
+                    species=species
                 )
             )
-            
+            """
             img = await genSignPic(
                 detail.age,
                 detail.sex,
@@ -130,6 +134,15 @@ async def DailySignin(
                 "我们的征途是星辰大海",
                 "此刻，众神踏入英灵殿！",
                 True,
+            )
+            """
+            img = await genSignPic(
+                group.id,
+                event.sender.name,
+                coinincrease,
+                0,
+                100,
+                species
             )
 
         else:
@@ -148,12 +161,10 @@ async def DailySignin(
             # 增加鳞币
             coinincrease = random.randint(energy_range[0], energy_range[1])
             first.coin += coinincrease
-            if coinincrease > 0:
-                s = f"{first.coin}  ↑{coinincrease}"
-            else:
-                s = f"{first.coin}  ↓{coinincrease}"
+
 
             # 开始绘图
+            """
             img = await genSignPic(
                 detail.age,
                 detail.sex,
@@ -168,6 +179,15 @@ async def DailySignin(
                 "欢迎回来，我们的先驱!",
                 False,
             )
+            """
+            img = await genSignPic(
+                first.group,
+                first.nickname,
+                first.coin,
+                first.iron,
+                first.unity,
+                first.species
+            )
 
         await session.commit()
         return MessageChain(Image(data_bytes=img))
@@ -178,8 +198,10 @@ async def getMyInfo(
     app: Ariadne,group: Group,event: GroupMessage,
 ) -> MessageChain:
     """获取自身资源数据"""
+    """
     detail = await event.sender.get_profile()
     avatar = await event.sender.get_avatar()
+    """
     await app.send_group_message(group, "Situation Log Updated ...... Waitting.....")
     dbsession = await db.get_db_session()
     async with dbsession() as session:
@@ -200,18 +222,12 @@ async def getMyInfo(
         if not first:
             return MessageChain(Plain("本群好像还没加入星海~"))
         img = await genSignPic(
-            detail.age,
-            detail.sex,
-            avatar,
             first.group,
             first.nickname,
             first.coin,
-            "",
             first.iron,
             first.unity,
-            f"星海{group.id}----{event.sender.id}",
-            "",
-            False,
+            first.species
         )
         return MessageChain(Image(data_bytes=img))
 
