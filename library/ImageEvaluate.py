@@ -1,5 +1,5 @@
 import aiohttp
-import json
+import aiocache
 
 
 
@@ -13,6 +13,7 @@ class ImageEvaluate(object):
         self.Subscription = Subscription
         self.rootUrl = f"https://{region}.api.cognitive.microsoft.com"
 
+    @aiocache.cached(ttl=600)#或许是一个必要的缓存，避免Azureapi请求数超额
     async def getResult(self,ImageURL:str) -> dict:
         """异步请求AzureAPI获取图像审查数据"""
         

@@ -149,8 +149,8 @@ async def sub_system_controller(
         group=group,
         member_id=event.sender.id
     )
-    print(member.permission)
-    if member.permission == "MEMBER" or (event.sender.id not in config.owners):
+
+    if member.permission == "MEMBER" and (event.sender.id not in config.owners):
         await app.send_group_message(
             target=group,
             message=MessageChain(
