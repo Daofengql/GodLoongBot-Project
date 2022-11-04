@@ -19,16 +19,32 @@ from graia.ariadne.message.parser.twilight import (
     WildcardMatch,
 )
 
+from library.orm.extra import mysql_db_pool
+
+db = mysql_db_pool()
+
+from library.ImageEvaluate import ImageEvaluate
 
 
 from .data import get_sub_group, parse_eq_data, change_sub_status
 
 aleater = Channel.current()
+aleater.author("道锋潜鳞")
+aleater.description("预警系统")
+aleater.name("预警插件")
 
 
-INIT_LIST = deque(maxlen=150)
 
-async def init():
+imgEva = ImageEvaluate(
+    Subscription="9b2c86318477461f94529053abc6c826",
+    region="eastasia"
+)#图像审查模块继承
+
+
+INIT_LIST = deque(maxlen=150)#地震数据列
+
+async def Eqinit():
+
     global INIT_LIST
     async with aiohttp.ClientSession() as session:
         for _ in range(1,6):
@@ -37,16 +53,20 @@ async def init():
                     x1 = await response.text()
             except:pass
             else:break
+        try:
+            tmp = await parse_eq_data(x1)
+            if tmp:
+                INIT_LIST = tmp
+        except:
+            pass
 
-        INIT_LIST = await parse_eq_data(x1)
-
-
-
-loop = asyncio.get_event_loop()
-loop.run_until_complete(init())
+asyncio.run(Eqinit())#地震数据预启动
 
 @aleater.use(SchedulerSchema(timers.every_custom_seconds(120)))
 async def every_minute_speaking(app: Ariadne):
+    """
+    地震预警系统
+    """
     global INIT_LIST
 
     session = Ariadne.service.client_session
@@ -84,7 +104,8 @@ async def every_minute_speaking(app: Ariadne):
                 [
                     UnionMatch("消息订阅管理", ".sub").help("主控制器"),
                     UnionMatch(
-                        "-EarthQuack","地震通知"
+                        "-EarthQuack","地震通知",
+                        "-ImageEva","图像审查"
                     ) @ "func",
                     UnionMatch(
                         "开启","enable",
@@ -102,7 +123,9 @@ async def sub_system_controller(
     event: GroupMessage,
     do: MatchResult,
     func: MatchResult,):
-
+    """
+    预警订阅功能开启关闭
+    """
     do = do.result.display
     func = func.result.display
 
@@ -118,6 +141,9 @@ async def sub_system_controller(
     if func in ("-EarthQuack","地震通知"):
         func = "eq"
         funcname = "地震通知推送"
+    elif func in ("-ImageEva","图像审查"):
+        func = "ImgEva"
+        funcname = "图像健康性审查"
         
     member = await app.get_member(
         group=group,
@@ -149,13 +175,13 @@ async def sub_system_controller(
                 Plain(f"<{funcname}>已经在本群关闭")
             )
         )
-from library.orm.extra import mysql_db_pool
 
-db = mysql_db_pool()
-        
+
 @aleater.use(SchedulerSchema(timers.every_custom_hours(24)))
 async def clear_user(app: Ariadne):
-
+    """
+    定时清除签到系统中失效的群聊
+    """
     group = await app.get_group_list()
     g = [i.id for i in group]
 
@@ -167,3 +193,43 @@ async def clear_user(app: Ariadne):
             f"""DELETE FROM `users` WHERE `group` not  in {str(tuple(g))};"""
         )
         await session.commit()
+
+
+
+@aleater.use(
+    ListenerSchema(
+        listening_events=[GroupMessage]
+        )
+    )
+async def imgLook(
+    bot: Ariadne,
+    message: MessageChain,
+    event:GroupMessage,
+    group: Group):
+    """
+    审查主函数
+    """
+
+    groups = await get_sub_group("ImgEva")
+
+    if group.id not in groups:
+        return
+
+    if message.has(Image):
+        for image in message.get(Image):
+            url = image.url
+            await asyncio.sleep(1)
+            try:
+                result = await imgEva.getResult(url)
+            
+                if result["IsImageAdultClassified"] or result["IsImageRacyClassified"]:
+                    await bot.send_group_message(
+                        message=MessageChain(
+                            At(event.sender.id),
+                            "您刚刚的消息疑似存在不健康内容，请按照群要求处理"
+                        ),
+                        target=group
+                    )
+                    return 
+            except:
+                pass
