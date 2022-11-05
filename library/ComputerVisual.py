@@ -15,6 +15,12 @@ class ObjectInitError(Exception):
     def __str__(self):
         return repr("区域和终结点不可共存，您只能填写其中一个参数用于请求")
 
+class RequestTooFast(Exception):
+    """区域和终结点不可共存"""
+
+    def __str__(self):
+        return repr("您的请求过快")
+
 
 
 
@@ -120,7 +126,9 @@ class ComputerVisual(object):
             async with aiohttp.ClientSession() as session:
                 try:
                     async with session.post(APIurl,headers=self.config.header,json=postData) as response:
-                        if response.status != 200:
+                        if response.status == 429:
+                            raise RequestTooFast
+                        elif response.status != 200:
                             raise ReqError
                         return  Modles.ImageExamination.parse_obj(await response.json())
 
@@ -172,7 +180,9 @@ class ComputerVisual(object):
                         json=postData,
                         params=param) as response:
 
-                        if response.status != 200:
+                        if response.status == 429:
+                            raise RequestTooFast
+                        elif response.status != 200:
                             raise ReqError
                         return Modles.ComputerVisual.parse_obj(await response.json())
 
