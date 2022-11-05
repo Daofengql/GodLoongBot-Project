@@ -23,7 +23,7 @@ from library.orm.extra import mysql_db_pool
 
 db = mysql_db_pool()
 
-from library.ImageEvaluate import ImageEvaluate
+from library.ComputerVisual import ApiConfig,ComputerVisual
 
 
 from .data import get_sub_group, parse_eq_data, change_sub_status
@@ -35,7 +35,7 @@ aleater.name("预警插件")
 
 
 
-imgEva = ImageEvaluate(
+imgEvaConf = ApiConfig(
     Subscription="9b2c86318477461f94529053abc6c826",
     region="eastasia"
 )#图像审查模块继承
@@ -220,9 +220,10 @@ async def imgLook(
             url = image.url
             await asyncio.sleep(1)
             try:
-                result = await imgEva.getResult(url)
+                imgEva = ComputerVisual.ImageExamination(imgEvaConf)
+                result = await imgEva.request(url)
             
-                if result["IsImageAdultClassified"] or result["IsImageRacyClassified"]:
+                if result.IsImageAdultClassified or result.IsImageRacyClassified:
                     await bot.send_group_message(
                         message=MessageChain(
                             At(event.sender.id),
