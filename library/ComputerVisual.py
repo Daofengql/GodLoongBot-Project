@@ -1,8 +1,7 @@
 import aiohttp
 import aiocache
 from pydantic import BaseModel, Field
-from typing import Literal
-
+from typing import Literal,Any
 
 
 class ReqError(Exception):
@@ -61,7 +60,7 @@ class Modles(object):
         class _st(BaseModel):
             Code:int
             Description:str
-            exception = Field(..., alias="Exception")
+            error:Any = Field(..., alias="Exception")
         
         AdultClassificationScore:float
         IsImageAdultClassified:bool
