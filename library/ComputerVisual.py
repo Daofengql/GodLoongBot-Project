@@ -16,7 +16,7 @@ class ObjectInitError(Exception):
         return repr("区域和终结点不可共存，您只能填写其中一个参数用于请求")
 
 class RequestTooFast(Exception):
-    """区域和终结点不可共存"""
+    """您的请求过快"""
 
     def __str__(self):
         return repr("您的请求过快")
@@ -46,7 +46,6 @@ class ApiConfig(object):
             raise ObjectInitError
             
         self.header = {
-                "Content-Type":"application/json",
                 "Ocp-Apim-Subscription-Key": Subscription
         }
         
@@ -82,21 +81,67 @@ class Modles(object):
         TrackingId:str
         #请求追踪id
 
-    class ComputerVisual(BaseModel):
+    class ComputerVisual(object):
         """机器视觉返回基类"""
-        class _categorie (BaseModel):
-            name:str
-            score:float
 
-        categories:list[_categorie] #标签列表
-        requestId:str #请求id
-        class _met(BaseModel):
-            """图像元数据"""
-            height:int
-            width:int
-            format:str
-        modelVersion:str
-        metadata:_met
+        class AnalyzeImage(BaseModel):
+            """图像分析返回基类"""
+            class _categorie (BaseModel):
+                name:str
+                score:float
+
+            categories:list[_categorie] #标签列表
+            requestId:str #请求id
+            class _met(BaseModel):
+                """图像元数据"""
+                height:int
+                width:int
+                format:str
+            modelVersion:str
+            metadata:_met
+        
+        class DescribeImage(BaseModel):
+            """图像分析返回基类"""
+            class _description(BaseModel):
+
+                class _captions(BaseModel):
+                    text:str
+                    confidence:float
+                    
+                tags:list[str]
+                captions:list[_captions]
+
+            description:_description
+            requestId:str
+
+            class _met(BaseModel):
+                """图像元数据"""
+                height:int
+                width:int
+                format:str
+            modelVersion:str
+            metadata:_met
+
+        class TagImage(BaseModel):
+            """图像分析返回基类"""
+
+            class _tag(BaseModel):
+                name:str
+                confidence:float
+                    
+            tags:list[_tag]
+
+
+            requestId:str
+
+            class _met(BaseModel):
+                """图像元数据"""
+                height:int
+                width:int
+                format:str
+            modelVersion:str
+            metadata:_met
+
 
 
 
@@ -141,12 +186,57 @@ class ComputerVisual(object):
 
         def __init__(self, config:ApiConfig) -> None:
             self.config = config
-
+            self.config.rootUrl = self.config.rootUrl + "/vision/v3.2/"
 
         @aiocache.cached(ttl=600)#或许是一个必要的缓存，避免Azureapi请求数超额
-        async def request(
+        async def _requests(
             self,
-            ImageURL:str,
+            func:str = "",
+            ImageURL:str="",
+            ImageBin:bytes=b"",
+            param = {}
+            ) -> dict:
+
+
+            APIurl = f"{self.config.rootUrl}{func}"
+
+            async with aiohttp.ClientSession() as session:
+                try:
+                    if ImageBin:
+                        async with session.post(
+                            APIurl,
+                            headers=self.config.header,
+                            data=ImageBin,
+                            params=param) as response:
+                            if response.status == 429:
+                                raise RequestTooFast
+                            elif response.status != 200:
+                                raise ReqError
+                            return await response.json()
+                            
+                    else:
+                        postData = {"url":ImageURL}
+                        async with session.post(
+                            APIurl,
+                            headers=self.config.header,
+                            json=postData,
+                            params=param) as response:
+
+                            if response.status == 429:
+                                raise RequestTooFast
+                            elif response.status != 200:
+                                raise ReqError
+                            return await response.json()
+
+                except aiohttp.ClientError:
+                    raise ReqError
+            
+
+
+        async def AnalyzeImage(
+            self,
+            ImageURL:str="",
+            ImageBin:bytes=b"",
             language:Literal[
                 'ar', 'az', 'bg', 'bs',
                 "ca", "cs", "cy", "da",
@@ -161,30 +251,80 @@ class ComputerVisual(object):
                 "ru","sk","sl","sl-Cyrl",
                 "sl-Latn","sv","th","tr","uk","vi","zh"
                 ]="zh"
-                ) -> Modles.ComputerVisual:
+                ) -> Modles.ComputerVisual.AnalyzeImage:
 
             """异步请求AzureAPI获取图像审查数据"""
-            
-            APIurl = f"{self.config.rootUrl}/vision/v3.2/analyze"
-            postData = {"url":ImageURL}
+
             param = {
                 "visualFeatures":"Categories",
                 "language":language
             }
-            
-            async with aiohttp.ClientSession() as session:
-                try:
-                    async with session.post(
-                        APIurl,
-                        headers=self.config.header,
-                        json=postData,
-                        params=param) as response:
 
-                        if response.status == 429:
-                            raise RequestTooFast
-                        elif response.status != 200:
-                            raise ReqError
-                        return Modles.ComputerVisual.parse_obj(await response.json())
+            data = await self._requests(
+                ImageBin=ImageBin,
+                ImageURL=ImageURL,
+                func="analyze",
+                param=param
+            )
+            return Modles.ComputerVisual.AnalyzeImage.parse_obj(data)
 
-                except aiohttp.ClientError:
-                    raise ReqError
+
+        async def DescribeImage(
+            self,
+            ImageURL:str="",
+            ImageBin:bytes=b"",
+            language:Literal[
+                'en', 'es', 'ja', 'pt',"zh"
+                ]="zh",
+            maxCandidates:int = 1
+            ) -> Modles.ComputerVisual.DescribeImage:
+
+            """异步请求AzureAPI获取图像审查数据"""
+            param = {
+                "maxCandidates":maxCandidates,
+                "language":language
+            }
+       
+            data = await self._requests(
+                ImageBin=ImageBin,
+                ImageURL=ImageURL,
+                func="describe",
+                param=param
+            )
+            return Modles.ComputerVisual.DescribeImage.parse_obj(data)
+        
+        async def TagImage(
+            self,
+            ImageURL:str="",
+            ImageBin:bytes=b"",
+            language:Literal[
+                'ar', 'az', 'bg', 'bs',
+                "ca", "cs", "cy", "da",
+                "de", "el", "en", "es",
+                "et", "eu", "fi", "fr",
+                "ga", "gl", "he", "hi",
+                "hr", "hu", "id", "it",
+                "ja", "kk", "ko", "lt",
+                "lv", "mk", "ms", "nb",
+                "nl","pl","prs","pt",
+                "pt-BR","pt-PT","ro",
+                "ru","sk","sl","sl-Cyrl",
+                "sl-Latn","sv","th","tr","uk","vi","zh"
+                ]="zh"
+                ) -> Modles.ComputerVisual.TagImage:
+
+            """异步请求AzureAPI获取图像审查数据"""
+
+            param = {
+                "visualFeatures":"Categories",
+                "language":language
+            }
+
+            data = await self._requests(
+                ImageBin=ImageBin,
+                ImageURL=ImageURL,
+                func="tag",
+                param=param
+            )
+
+            return Modles.ComputerVisual.TagImage.parse_obj(data)
