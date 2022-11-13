@@ -51,8 +51,9 @@ class Logger(Base):
 
     __tablename__ = "logger"
 
+    id = Column(BIGINT(20), primary_key=True, nullable=False, comment='id')
 
-    msgid = Column(BIGINT, nullable=False, primary_key=True, comment="消息编号")
+    msgid = Column(BIGINT, nullable=False,  comment="消息编号")
     """ 消息编号 """
 
     group = Column(BIGINT, nullable=False, comment="群号")
