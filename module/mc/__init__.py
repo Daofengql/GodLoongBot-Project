@@ -71,3 +71,35 @@ async def runmc(
     await client.close()
 
 
+from graia.broadcast.builtin.decorators import Depend
+from graia.broadcast import ExecutionStop
+
+def check_group():
+    async def check_group_deco(group: Group):
+        if group.id != 970600703:
+            raise ExecutionStop
+    return Depend(check_group_deco)
+
+
+@mc.use(
+    ListenerSchema(
+        listening_events=[GroupMessage],
+        decorators=[
+            check_group()
+        ],
+        )
+    )
+async def pushmc(
+    message:MessageChain,
+    event:GroupMessage
+    ):
+    sts = f"say [群聊]  {event.sender.name}:{message.display}"
+    try:
+        await client.connect()
+        await client.send_cmd(sts)
+
+    except:
+        return
+    await client.close()
+
+
