@@ -40,6 +40,15 @@ async def checktime(result: User) -> bool:
         - result.lasttime
     ) > datetime.timedelta(seconds=4)
 
+async def getRandSpecies():
+    session = Ariadne.service.client_session
+    try:
+        async with session.get("https://v1.loongapi.com/v1/bot/stellairs/species/random") as resp:
+            id = (await resp.json())["result"]["id"]
+    except:
+        id = 0
+    return id    
+
 # 检查时间是否在夜间保护时间内
 async def checktimeIfInNight() -> bool :
     now = datetime.datetime.now()
@@ -64,8 +73,6 @@ async def DailySignin(
         return MessageChain(
             Plain("在当日23:50分至次日1时之间，签到功能将暂使用。系统将在后台统计签到数据")
         )
-    detail = await event.sender.get_profile()
-    avatar = await event.sender.get_avatar()
     dbsession = await db.get_db_session()
     async with dbsession() as session:
         # 读取用户是否存在
@@ -95,15 +102,17 @@ async def DailySignin(
 
             ##判断用户昵称是否合法，并提取合法内容
             
-
-            name = str(pattern.search(event.sender.name.strip()).group())
-            name = name[:15]
+            try:
+                name = str(pattern.search(event.sender.name.strip()).group())[:15]
+            except:
+                name = "UNKNOWN-User"
+           
 
     
             # 开始加入数据库
             coinincrease = 2 * random.randint(energy_range[0], energy_range[1])
 
-            species = random.randint(1,200)
+            species = await getRandSpecies()
 
             await session.execute(
                 insert(User).values(
@@ -120,22 +129,6 @@ async def DailySignin(
                     species=species
                 )
             )
-            """
-            img = await genSignPic(
-                detail.age,
-                detail.sex,
-                avatar,
-                group.id,
-                event.sender.name,
-                coinincrease,
-                "",
-                0,
-                100,
-                "我们的征途是星辰大海",
-                "此刻，众神踏入英灵殿！",
-                True,
-            )
-            """
             img = await genSignPic(
                 group.id,
                 event.sender.name,
@@ -150,7 +143,7 @@ async def DailySignin(
             if not await checktime(first):
                 return MessageChain(
                     Plain(
-                        f"先驱 [{event.sender.name}] ,您今天已经在位面：{group.id}上领取过您的今日奖励了，请使用其他方法获取麟币。梵天神兵都没你高效（"
+                        f"先驱 [{event.sender.name}] ,您今天已经在位面：{group.id}上领取过您的今日奖励了，请使用其他方法获取麟币。今天就别再在这签到了，小心首星变黑洞（"
                     )
                 )
             # 修改当前时间
@@ -164,22 +157,6 @@ async def DailySignin(
 
 
             # 开始绘图
-            """
-            img = await genSignPic(
-                detail.age,
-                detail.sex,
-                avatar,
-                first.group,
-                first.nickname,
-                s,
-                "",
-                first.iron,
-                first.unity,
-                "我们的征途是星辰大海",
-                "欢迎回来，我们的先驱!",
-                False,
-            )
-            """
             img = await genSignPic(
                 first.group,
                 first.nickname,
@@ -198,10 +175,7 @@ async def getMyInfo(
     app: Ariadne,group: Group,event: GroupMessage,
 ) -> MessageChain:
     """获取自身资源数据"""
-    """
-    detail = await event.sender.get_profile()
-    avatar = await event.sender.get_avatar()
-    """
+
     await app.send_group_message(group, "Situation Log Updated ...... Waitting.....")
     dbsession = await db.get_db_session()
     async with dbsession() as session:

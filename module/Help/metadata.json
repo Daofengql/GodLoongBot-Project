@@ -1,0 +1,15 @@
+{
+    "name": "菜单",
+    "pack": "module.Help",
+    "version": "Unknown",
+    "author": [
+        "daofengql"
+    ],
+    "pypi": false,
+    "category": "miscellaneous",
+    "description": "菜单",
+    "dependency": null,
+    "loaded": true,
+    "override_default": null,
+    "override_switch": null
+}

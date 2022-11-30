@@ -32,7 +32,8 @@ else:
 class AsyncEngine:
     def __init__(self, db_link):
         self.engine = create_async_engine(db_link, **adapter, echo=False)
-
+        
+        
     async def get_session(self):
         async with AsyncSession(self.engine) as session:
             yield session
@@ -51,7 +52,7 @@ class AsyncEngine:
                 if db_mutex:
                     await db_mutex.acquire()
                 result = await session.execute(sql, **kwargs)
-
+                
                 await session.commit()
                 return result
             except Exception as e:

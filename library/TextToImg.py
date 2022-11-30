@@ -4,23 +4,18 @@ import re
 from pathlib import Path
 import string
 
-ttfname = "HarmonyOS_Sans/HarmonyOS_Sans_SC/HarmonyOS_Sans_SC_Medium.ttf"
-
+ttfname ="HarmonyOS_Sans/HarmonyOS_Sans_SC/HarmonyOS_Sans_SC_Medium.ttf"
 
 class AsyncTextToImage(object):
-    def __init__(
-        self,
-    ) -> None:
-
-        font_file = font_file = str(
-            Path(Path(__file__).parent.parent, "library", "assets", "fonts", ttfname)
-        )
+    def __init__(self,) -> None:
+        
+        font_file =font_file = str(Path(Path(__file__).parent.parent, "library","assets", "fonts", ttfname))
         try:
             self.font = ImageFont.truetype(font_file, 22)
-        except OSError:
-            pass
+        except OSError:pass
 
-    async def get_cut_str_sync(self, str, cut) -> list:
+        
+    async def get_cut_str_sync(self,str, cut)->list:
         """
         自动断行，用于 Pillow 等不会自动换行的场景
         """
@@ -71,7 +66,9 @@ class AsyncTextToImage(object):
             i += 1
         return non_wrap_str
 
-    async def create_image_sync(self, text: str, cut: int) -> BytesIO:
+
+
+    async def create_image_sync(self,text: str, cut: int) -> BytesIO:
         cut_str = "\n".join(await self.get_cut_str_sync(text, cut))
         textx, texty = self.font.getsize_multiline(cut_str)
         image = Image.new("RGB", (textx + 40, texty + 40), (235, 235, 235))
@@ -91,15 +88,12 @@ class AsyncTextToImage(object):
 
 class TextToImage(object):
     def __init__(self) -> None:
-        font_file = font_file = str(
-            Path(Path(__file__).parent.parent, "library", "assets", "fonts", ttfname)
-        )
+        font_file =font_file = str(Path(Path(__file__).parent.parent, "library","assets", "fonts", ttfname))
         try:
             self.font = ImageFont.truetype(font_file, 22)
-        except OSError:
-            pass
+        except OSError:pass
 
-    def get_cut_str(self, str, cut) -> list:
+    def get_cut_str(self,str, cut)->list:
         """
         自动断行，用于 Pillow 等不会自动换行的场景
         """
@@ -150,7 +144,9 @@ class TextToImage(object):
             i += 1
         return non_wrap_str
 
-    def create_image(self, text: str, cut: int) -> BytesIO:
+
+
+    def create_image(self,text: str, cut: int) -> BytesIO:
         cut_str = "\n".join(self.get_cut_str(text, cut))
         textx, texty = self.font.getsize_multiline(cut_str)
         image = Image.new("RGB", (textx + 40, texty + 40), (235, 235, 235))
@@ -166,3 +162,4 @@ class TextToImage(object):
         )
         imageio.seek(0)
         return imageio
+        

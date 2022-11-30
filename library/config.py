@@ -1,5 +1,5 @@
 from library.model import NConfig
 
 config: NConfig = NConfig()
-config.docs = "https://daofengql.gitee.io/godloongbot/"
+config.docs="https://daofengql.github.io/GodLoongBot-Docs/"
 config.save()

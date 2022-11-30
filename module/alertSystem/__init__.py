@@ -6,6 +6,7 @@ from library.config import config
 from graia.ariadne.app import Ariadne
 from graia.ariadne.message.element import Image, At, Plain, Source, AtAll
 from graia.ariadne.event.message import GroupMessage
+from graia.ariadne.event.mirai import MemberHonorChangeEvent
 from graia.ariadne.message.chain import MessageChain
 from graia.saya.builtins.broadcast import ListenerSchema
 from graia.ariadne.model import Group
@@ -32,7 +33,6 @@ aleater = Channel.current()
 aleater.author("道锋潜鳞")
 aleater.description("预警系统")
 aleater.name("预警插件")
-
 
 
 imgEvaConf = ApiConfig(
@@ -227,10 +227,29 @@ async def imgLook(
                     await bot.send_group_message(
                         message=MessageChain(
                             At(event.sender.id),
-                            "您刚刚的消息疑似存在不健康内容，请按照群要求处理"
+                            Plain("您刚刚的消息疑似存在不健康内容，请按照群要求处理")
                         ),
                         target=group
                     )
                     return 
             except:
                 pass
+
+@aleater.use(
+    ListenerSchema(
+        listening_events=[MemberHonorChangeEvent]
+        )
+    )
+async def MemberHonorChange(
+    bot: Ariadne,
+    event:MemberHonorChangeEvent,
+    group: Group):
+    if event.action == "achieve":
+        message = MessageChain(
+            Plain(f"恭喜{event.member.id}获得了{event.honor}~~~~")
+        )
+        await bot.send_group_message(
+            target=group,
+            message=message
+        )
+    return

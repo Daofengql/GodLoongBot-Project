@@ -5,6 +5,7 @@ from graia.ariadne.message.parser.twilight import (
     UnionMatch,
     MatchResult,
     WildcardMatch,
+    FullMatch
 )
 
 from graia.saya import Channel
@@ -24,12 +25,10 @@ from .utils import (
     getMyInfo,
     worShip,
     changeMyName,
-    convertAssets,
-    authcode
+    convertAssets
 )
 import aiofiles
 import asyncio
-import random
 
 stellairs = Channel.current()
 
@@ -41,22 +40,28 @@ db = mysql_db_pool()
 PATH = os.path.dirname(__file__) + "/assets/"
 
 
-"""临时屏蔽测试，提交记得删除
+
 @stellairs.use(
     ListenerSchema(
         listening_events=[GroupMessage],
         inline_dispatchers=[
             Twilight(
                 [
-                    UnionMatch("签到").help("主控制器") @ "func",
-                    WildcardMatch() @ "param",
+                    UnionMatch("签到").help("主控制器")
                 ]
             )
         ],
     )
 )
+async def stellairs_handle2(
+    app: Ariadne,
+    group: Group,
+    event: GroupMessage,
+    message: MessageChain
+): 
+    await stellairs_handle(app,group,event,message,"签到","签到")
 
-"""
+
 @stellairs.use(
     ListenerSchema(
         listening_events=[GroupMessage],
@@ -88,62 +93,9 @@ async def stellairs_handle(
     param: MatchResult,
     func: MatchResult,
 ):
-    param = param.result.display
-    func = func.result.display
-
-
-
-
-    """
-    capcode = await authcode(8)
-    await asyncio.sleep(1)
-    tmpmessageid = await app.send_group_message(
-        group,
-        MessageChain(
-            Plain(f"当前操作需要人机验证，请在40秒内发送如下字符串：{capcode}")
-        ),
-        quote=message.get_first(Source)
-    )
-
-    #撤回终止命令检测
-    @Waiter.create_using_function(listening_events=[GroupMessage])
-    async def waiter(waiter_message: MessageChain, g: Group, e: GroupMessage):
-        if e.sender.id == event.sender.id and g.id == group.id and waiter_message.display==str(capcode):
-            return True
-        elif g.id == group.id and (str(capcode) in waiter_message.display) and e.sender.id != event.sender.id:
-            return False
-    try:
-        status = await asyncio.wait_for(
-            InterruptControl(app.broadcast).wait(waiter), 40
-        )
-        #如果有撤回事件响应，则终止等待，return返回结束处理
-        if not status:
-            await asyncio.sleep(1)
-            await app.send_group_message(
-                group,
-                MessageChain(
-                    Plain(f"验证失败，您的签到行为疑似非法")
-                ),
-                quote=message.get_first(Source)
-            )
-            await asyncio.sleep(2)
-            await app.recall_message(message=tmpmessageid.id,target=group)
-            return
-
-
-    except asyncio.exceptions.TimeoutError:
-        #如果检测撤回超时则意味着等待结束，开始进行正式任务处理
-        await app.send_group_message(
-            group,
-            MessageChain(
-                Plain(f"验证超时")
-            ),
-            quote=message.get_first(Source)
-        )
-        await asyncio.sleep(3)
-        await app.recall_message(message=tmpmessageid.id,target=group)
-        return
-    """
+    if isinstance(param,MatchResult) and isinstance(func,MatchResult):
+        param = param.result.display
+        func = func.result.display
 
     #撤回终止命令检测
     @Waiter.create_using_function(listening_events=[GroupRecallEvent])
@@ -166,8 +118,6 @@ async def stellairs_handle(
     except asyncio.exceptions.TimeoutError:
         #如果检测撤回超时则意味着等待结束，开始进行正式任务处理
         pass
-
-
     aioHTTPsession = Ariadne.service.client_session
 
     #签到功能
@@ -217,5 +167,5 @@ async def stellairs_handle(
         ret,
         quote=message.get_first(Source)
     )
-    #await asyncio.sleep(3)
+    await asyncio.sleep(3)
     #await app.recall_message(message=tmpmessageid.id,target=group)

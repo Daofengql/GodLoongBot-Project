@@ -13,5 +13,8 @@
     },
     "module.system": {
         "438991075": false
+    },
+    "module.alertSystem": {
+        "438991075": true
     }
 }

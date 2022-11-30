@@ -4,4 +4,3 @@ config.json
 /poetry.lock
 log/
 .vscode/
-pluginTemp/

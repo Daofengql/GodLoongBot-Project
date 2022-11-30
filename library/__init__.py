@@ -10,6 +10,7 @@ __version__ = "0.1.0"
 log_dir = Path(Path().resolve(), "log")
 log_dir.mkdir(exist_ok=True)
 
+"""
 logger.add(
     Path(log_dir, "{time:YYYY-MM-DD}", "common.log"),
     level="INFO",
@@ -17,6 +18,7 @@ logger.add(
     encoding="utf-8",
     rotation=time(),
 )
+"""
 logger.add(
     Path(log_dir, "{time:YYYY-MM-DD}", "error.log"),
     level="ERROR",

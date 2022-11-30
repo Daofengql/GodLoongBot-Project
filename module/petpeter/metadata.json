@@ -1,0 +1,15 @@
+{
+    "name": "petpeter",
+    "pack": "module.petpeter",
+    "version": "Unknown",
+    "author": [
+        "Unknown"
+    ],
+    "pypi": false,
+    "category": "miscellaneous",
+    "description": "",
+    "dependency": null,
+    "loaded": true,
+    "override_default": null,
+    "override_switch": null
+}

@@ -114,10 +114,9 @@ class User(Base):
     species = Column(BIGINT(20), nullable=False,default=1, comment='物种id')
 
 
-
 class Sub(Base):
     __tablename__ = 'sub'
-    
+
     group = Column(BIGINT(20), primary_key=True, comment='群号')
     subfuc = Column(Text(), nullable=False, comment='订阅功能的名称')
 

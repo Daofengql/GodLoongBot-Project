@@ -1,4 +1,3 @@
-from ast import BinOp
 import time
 from socket import *
 from graia.ariadne.app import Ariadne

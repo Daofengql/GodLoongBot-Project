@@ -22,20 +22,18 @@ pillow = "^9.2.0"
 numpy = "^1.23.1"
 psutil = "^5.9.1"
 sqlalchemy = "^1.4.39"
-aiohttp = "^3.8.1"
+aiohttp = {extras = ["speedups"], version = "^3.8.1"}
 aiosqlite = "^0.17.0"
 graia-ariadne = "0.9.8"
 pyinstall = "^0.1.4"
-xmltojson = "^2.0.1"
+goto-statement = "^1.2"
 utils = "^1.0.1"
+xmltojson = "^2.0.1"
+azure-cognitiveservices-speech = "^1.24.2"
+aio-mc-rcon = "^3.2.0"
 
 [tool.poetry.dev-dependencies]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-
-[[tool.poetry.source]]
-name = "aliyun"
-url = "https://mirrors.aliyun.com/pypi/simple/"
-default = false

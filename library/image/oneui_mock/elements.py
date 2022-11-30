@@ -1,14 +1,10 @@
 import random
 from abc import ABC, abstractmethod
-from base64 import b64decode
 from datetime import datetime
 from io import BytesIO
-from typing import Literal
 
 from PIL import Image
 from PIL.Image import Resampling
-from graia.ariadne.message.element import Image as GraiaImage
-from loguru import logger
 
 from library.image import ImageUtil, TextUtil, IconUtil
 from .color import Color, PALETTE
@@ -20,9 +16,6 @@ SWITCH_ICON_ON: Image.Image = IconUtil.get_icon("oneui-switch-on", color=(0, 0, 
 SWITCH_ICON_OFF: Image.Image = IconUtil.get_icon("oneui-switch-off", color=(0, 0, 0))
 DEFAULT_ICON: Image.Image = IconUtil.get_icon("toy-brick", color=(252, 252, 252))
 
-BOARDER: int = 40
-GAP: int = 10
-
 
 class Element(ABC):
     @abstractmethod
@@ -31,10 +24,6 @@ class Element(ABC):
 
     @abstractmethod
     def __len__(self):
-        pass
-
-    @abstractmethod
-    def __hash__(self):
         pass
 
     @abstractmethod
@@ -48,51 +37,11 @@ class Element(ABC):
         pass
 
     @abstractmethod
-    def render_bytes(self, jpeg: bool = True) -> bytes:
-        """
-        Render the element and return bytes.
-
-        :param jpeg: Whether render as JPEG.
-        :return: bytes
-        """
-
-        canvas = self.render()
-        output = BytesIO()
-        if jpeg:
-            canvas.convert("RGB").save(output, "JPEG")
-        else:
-            canvas.save(output, "PNG")
-        return output.getvalue()
-
-    @abstractmethod
     def set_dark(self):
-        """
-        Set the element to dark mode.
-
-        :return: Self
-        """
-
         pass
 
     @abstractmethod
     def set_light(self):
-        """
-        Set the element to light mode.
-
-        :return: Self
-        """
-
-        pass
-
-    @abstractmethod
-    def set_width(self, width: int):
-        """
-        Set the width of the element.
-
-        :param width: The width to be set.
-        :return: Self
-        """
-
         pass
 
 
@@ -102,95 +51,87 @@ class Banner(Element):
     Most of the time, it is a text banner, icon is optional.
     """
 
+    HEIGHT: int = 140
+    WIDTH: int = ...
+
     TEXT_COLOR: tuple[int, int, int]
     BACKGROUND_COLOR: tuple[int, int, int]
 
-    TEXT_X: int = BOARDER
-    TEXT_Y: int = 90
-    TEXT_SIZE: int = 40
+    TEXT_X_RATIO: float = 0.06
+    TEXT_HEIGHT_RATIO: float = 0.35
+    TEXT_X: int = ...
+    TEXT_HEIGHT: int = int(HEIGHT * TEXT_HEIGHT_RATIO)
+    TEXT_Y: int = HEIGHT - TEXT_HEIGHT
+    TEXT_SIZE: int = int(TEXT_HEIGHT * 0.8)
 
-    ICON_RIGHT_GAP: int = BOARDER
-    ICON_SIZE: int = TEXT_SIZE
+    ICON_X_RATIO: float = 0.13
+    ICON_Y_RATIO: float = 0.20
+    ICON_X: int = ...
+    ICON_Y: int = int(HEIGHT * ICON_Y_RATIO)
 
-    width: int
-    text: str
-    icon: Image.Image | None
-    replace_color: bool
+    __text: str
+    __icon: Image.Image | None
 
     def __init__(
         self,
         text: str,
         icon: Image.Image | None = None,
-        *,
         width: int = DEFAULT_WIDTH,
         dark: bool = None,
-        replace_color: bool = True,
     ):
         """
         :param text: Text to display
         :param icon: Icon to display
         :param width: Width of the banner
         :param dark: Whether the banner is dark or light
-        :param replace_color: Whether replace the color of the icon
         """
 
+        if width <= self.HEIGHT:
+            raise ValueError(f"Width must be greater than {self.HEIGHT}")
         if dark is None:
             dark = is_dark()
         if dark:
             self.set_dark()
         else:
             self.set_light()
-        self.width = width
-        self.text = text
-        self.icon = icon
-        self.replace_color = replace_color
+        self.WIDTH = width
+        self.__text = text
+        self.__icon = icon
+        self.TEXT_X = int(width * self.TEXT_X_RATIO)
+        self.ICON_X = width - int(width * self.ICON_X_RATIO)
 
-    def set_dark(self) -> "Banner":
+    def set_dark(self):
         self.TEXT_COLOR = Color.TEXT_COLOR_DARK
         self.BACKGROUND_COLOR = Color.BACKGROUND_COLOR_DARK
-        return self
 
-    def set_light(self) -> "Banner":
+    def set_light(self):
         self.TEXT_COLOR = Color.TEXT_COLOR_LIGHT
         self.BACKGROUND_COLOR = Color.BACKGROUND_COLOR_LIGHT
-        return self
-
-    def set_width(self, width: int) -> "Banner":
-        self.width = width
-        return self
 
     def __len__(self) -> int:
         return 1
 
-    def __hash__(self):
-        return hash(self.text + str(hash(self.icon)))
-
     def render(self) -> Image.Image:
-        text_width = self.width - 2 * BOARDER
-        if self.icon:
-            text_width -= self.ICON_SIZE + BOARDER
+        canvas = Image.new("RGBA", (self.WIDTH, self.HEIGHT), self.BACKGROUND_COLOR)
+        font = ImageUtil.get_font(self.TEXT_SIZE)
+        text = TextUtil.render_text(self.__text, self.TEXT_COLOR, font)
 
-        text = TextUtil.render_text(
-            self.text,
-            self.TEXT_COLOR,
-            ImageUtil.get_font(self.TEXT_SIZE),
-            width=text_width,
-        )
-        height = self.TEXT_Y + text.height
-        canvas = Image.new("RGBA", (self.width, height), self.BACKGROUND_COLOR)
+        if self.__icon is not None:
+            icon_size = text.height, text.height
+            self.__icon = self.__icon.resize(icon_size, Resampling.LANCZOS)
 
-        if self.icon is not None:
-            icon = self.icon.resize(
-                (self.ICON_SIZE, self.ICON_SIZE), Resampling.LANCZOS
-            )
-            if self.replace_color:
-                icon = IconUtil.replace_color(icon, self.TEXT_COLOR)
-            icon_x = self.width - self.ICON_RIGHT_GAP - self.ICON_SIZE
-            icon_y = self.TEXT_Y + (text.height - self.ICON_SIZE) // 2
-            if icon.mode == "RGBA":
-                canvas.paste(icon, (icon_x, icon_y), mask=icon)
-            else:
-                canvas.paste(icon, (icon_x, icon_y))
+            try:
+                canvas.paste(
+                    self.__icon,
+                    (self.TEXT_X, self.TEXT_Y),
+                    mask=self.__icon,
+                )
+            except ValueError:
+                canvas.paste(
+                    self.__icon,
+                    (self.ICON_X, self.TEXT_Y),
+                    mask=self.__icon.convert("L"),
+                )
 
         canvas.paste(
             text,
@@ -200,35 +141,38 @@ class Banner(Element):
 
         return canvas
 
-    def render_bytes(self, jpeg: bool = True) -> bytes:
-        canvas = self.render()
-        output = BytesIO()
-        if jpeg:
-            canvas.convert("RGB").save(output, "JPEG")
-        else:
-            canvas.save(output, "PNG")
-        return output.getvalue()
-
 
 class Header(Element):
     """
     Header is what displays below the banner, but above the content.
     """
 
+    HEIGHT: int = 133
+    WIDTH: int = ...
+
     TEXT_COLOR: tuple[int, int, int]
     DESCRIPTION_COLOR: tuple[int, int, int]
     FOREGROUND_COLOR: tuple[int, int, int]
 
-    TEXT_SIZE: int = 40
-    DESCRIPTION_SIZE: int = 25
+    LEFT_BOARDER_RATIO: float = 0.06
+    RIGHT_BOARDER_RATIO: float = 0.05
+    UP_BOARDER_RATIO: float = 0.19
+    TEXT_HEIGHT_RATIO: float = 0.39
+    DESCRIPTION_HEIGHT_RATIO: float = 0.22
+    ICON_BOARDER_RATIO: float = 0.14
 
-    ICON_BOARDER: int = GAP
-    ICON_SIZE = 125
+    TEXT_HEIGHT: int = int(HEIGHT * TEXT_HEIGHT_RATIO)
+    DESCRIPTION_HEIGHT: int = int(HEIGHT * DESCRIPTION_HEIGHT_RATIO)
+    LEFT_BOARDER: int = ...
+    RIGHT_BOARDER: int = ...
+    UP_BOARDER: int = int(HEIGHT * UP_BOARDER_RATIO)
+    ICON_BOARDER: int = int(HEIGHT * ICON_BOARDER_RATIO)
 
-    width: int
-    text: str
-    description: str
-    icon: Image.Image | None
+    ICON_SIZE = (HEIGHT - 2 * ICON_BOARDER, HEIGHT - 2 * ICON_BOARDER)
+
+    __text: str
+    __description: str
+    __icon: Image.Image | None
 
     def __init__(
         self,
@@ -246,239 +190,80 @@ class Header(Element):
         :param dark: Whether the header is dark or light
         """
 
+        if width <= self.HEIGHT:
+            raise ValueError(f"Width must be greater than {self.HEIGHT}")
         if dark is None:
             dark = is_dark()
         if dark:
             self.set_dark()
         else:
             self.set_light()
-        self.width = width
-        self.text = text
-        self.description = description
-        self.icon = icon
+        self.WIDTH = width
+        self.__text = text
+        self.__description = description
+        self.__icon = icon
+        self.LEFT_BOARDER = int(width * self.LEFT_BOARDER_RATIO)
+        self.RIGHT_BOARDER = int(width * self.RIGHT_BOARDER_RATIO)
 
-    def set_dark(self) -> "Header":
+    def set_dark(self):
         self.TEXT_COLOR = Color.TEXT_COLOR_DARK
         self.DESCRIPTION_COLOR = Color.DESCRIPTION_COLOR_DARK
         self.FOREGROUND_COLOR = Color.FOREGROUND_COLOR_DARK
-        return self
 
-    def set_light(self) -> "Header":
+    def set_light(self):
         self.TEXT_COLOR = Color.TEXT_COLOR_LIGHT
         self.DESCRIPTION_COLOR = Color.DESCRIPTION_COLOR_LIGHT
         self.FOREGROUND_COLOR = Color.FOREGROUND_COLOR_LIGHT
-        return self
-
-    def set_width(self, width: int) -> "Header":
-        self.width = width
-        return self
 
     def __len__(self) -> int:
         return 1
 
-    def __hash__(self):
-        return hash(self.text + self.description + str(hash(self.icon)))
-
     def render(self) -> Image.Image:
-        text_width = self.width - 2 * BOARDER
-        if self.icon:
-            text_width -= self.ICON_SIZE + BOARDER
-
-        text = TextUtil.render_text(
-            self.text,
-            self.TEXT_COLOR,
-            ImageUtil.get_font(self.TEXT_SIZE),
-            width=text_width,
-        )
+        canvas = Image.new("RGBA", (self.WIDTH, self.HEIGHT), self.FOREGROUND_COLOR)
+        font = ImageUtil.get_font(int(self.TEXT_HEIGHT * 0.8))
+        text = TextUtil.render_text(self.__text, self.TEXT_COLOR, font)
+        description_font = ImageUtil.get_font(int(self.DESCRIPTION_HEIGHT * 0.8))
         description = TextUtil.render_text(
-            self.description,
-            self.DESCRIPTION_COLOR,
-            ImageUtil.get_font(self.DESCRIPTION_SIZE),
-            width=text_width,
+            self.__description, self.DESCRIPTION_COLOR, description_font
         )
-        height = BOARDER * 2 + text.height + GAP + description.height
-        canvas = Image.new("RGBA", (self.width, height), self.FOREGROUND_COLOR)
 
-        if self.icon is not None:
-
-            if canvas.height < self.ICON_SIZE + 2 * self.ICON_BOARDER:
-                icon_size = canvas.height - 2 * self.ICON_BOARDER
-            else:
-                icon_size = self.ICON_SIZE
-
-            icon = ImageUtil.round_corners(
-                self.icon.resize((icon_size, icon_size), Resampling.LANCZOS),
-                radius=self.ICON_SIZE // 2,
+        if self.__icon is not None:
+            self.__icon = ImageUtil.round_corners(
+                self.__icon.resize(self.ICON_SIZE, Resampling.LANCZOS),
+                radius=self.ICON_SIZE[0] // 2,
+            )
+            icon_location = (
+                self.WIDTH - self.RIGHT_BOARDER - self.ICON_SIZE[0],
+                self.ICON_BOARDER,
             )
 
-            icon_x = self.width - icon_size - BOARDER
-            icon_y = (canvas.height - icon_size) // 2
+            try:
+                canvas.paste(
+                    self.__icon,
+                    icon_location,
+                    mask=self.__icon,
+                )
+            except ValueError:
+                canvas.paste(
+                    self.__icon,
+                    icon_location,
+                    mask=self.__icon.convert("L"),
+                )
 
-            if icon.mode == "RGBA":
-                canvas.paste(icon, (icon_x, icon_y), mask=icon)
-            else:
-                canvas.paste(icon, (icon_x, icon_y))
-
-        canvas.paste(
-            text,
-            (BOARDER, BOARDER),
-            mask=text,
-        )
+        canvas.paste(text, (self.LEFT_BOARDER, self.UP_BOARDER), mask=text)
         canvas.paste(
             description,
-            (
-                BOARDER,
-                BOARDER + text.height + GAP,
-            ),
+            (self.LEFT_BOARDER, self.UP_BOARDER + self.TEXT_HEIGHT),
             mask=description,
         )
 
-        return ImageUtil.round_corners(canvas, radius=BOARDER)
-
-    def render_bytes(self, jpeg: bool = True) -> bytes:
-        canvas = self.render()
-        output = BytesIO()
-        if jpeg:
-            canvas.convert("RGB").save(output, "JPEG")
-        else:
-            canvas.save(output, "PNG")
-        return output.getvalue()
-
-
-class ProgressBar(Element):
-    """
-    Progress bar is what displays the progress of a task.
-    """
-
-    TEXT_COLOR: tuple[int, int, int]
-    DESCRIPTION_COLOR: tuple[int, int, int]
-    FOREGROUND_COLOR: tuple[int, int, int]
-    HIGHLIGHT_COLOR: tuple[int, int, int]
-    SECONDARY_HIGHLIGHT_COLOR: tuple[int, int, int]
-
-    TEXT_SIZE: int = 35
-    DESCRIPTION_SIZE: int = 25
-
-    width: int
-    percentage: float
-    text: str | None = None
-    description: str | None = None
-
-    def __init__(
-        self,
-        percentage: float,
-        text: str | None = None,
-        description: str | None = None,
-        *,
-        width: int = DEFAULT_WIDTH,
-        dark: bool = None,
-    ):
-        super().__init__()
-        if dark is None:
-            dark = is_dark()
-        if dark:
-            self.set_dark()
-        else:
-            self.set_light()
-        if percentage < 0:
-            percentage = -percentage
-        self.percentage = percentage
-        self.text = text
-        self.description = description
-        self.width = width
-
-    def __len__(self):
-        return 1
-
-    def __hash__(self):
-        return hash(f"ProgressBar{self.width}{self.percentage}")
-
-    def set_dark(self) -> "ProgressBar":
-        self.TEXT_COLOR = Color.TEXT_COLOR_DARK
-        self.DESCRIPTION_COLOR = Color.DESCRIPTION_COLOR_DARK
-        self.HIGHLIGHT_COLOR = Color.HIGHLIGHT_COLOR_DARK
-        self.FOREGROUND_COLOR = Color.FOREGROUND_COLOR_DARK
-        self.SECONDARY_HIGHLIGHT_COLOR = Color.SECONDARY_HIGHLIGHT_COLOR_DARK
-        return self
-
-    def set_light(self) -> "ProgressBar":
-        self.TEXT_COLOR = Color.TEXT_COLOR_LIGHT
-        self.DESCRIPTION_COLOR = Color.DESCRIPTION_COLOR_LIGHT
-        self.HIGHLIGHT_COLOR = Color.HIGHLIGHT_COLOR_LIGHT
-        self.FOREGROUND_COLOR = Color.FOREGROUND_COLOR_LIGHT
-        self.SECONDARY_HIGHLIGHT_COLOR = Color.SECONDARY_HIGHLIGHT_COLOR_LIGHT
-        return self
-
-    def set_width(self, width: int) -> "ProgressBar":
-        self.width = width
-        return self
-
-    def render_base(self) -> Image.Image:
-        base = Image.new("RGBA", size=(1000, 1), color=self.SECONDARY_HIGHLIGHT_COLOR)
-        if self.percentage == 0:
-            return base
-        front = Image.new(
-            "RGBA",
-            size=(int(self.percentage * 10 // 1), base.height),
-            color=self.HIGHLIGHT_COLOR,
-        )
-        base.paste(front, mask=front)
-        return base
-
-    def render(self) -> Image.Image:
-        bar = self.render_base().resize((self.width - BOARDER * 2, BOARDER))
-        bar = ImageUtil.round_corners(bar, bar.height // 2)
-
-        height = BOARDER * 2 + bar.height
-        text = None
-        description = None
-
-        if self.text:
-            text = TextUtil.render_text(
-                self.text,
-                self.TEXT_COLOR,
-                ImageUtil.get_font(self.TEXT_SIZE),
-                width=self.width - BOARDER * 2,
-            )
-            height += text.height + GAP * 2
-        if self.description:
-            description = TextUtil.render_text(
-                self.description,
-                self.DESCRIPTION_COLOR,
-                ImageUtil.get_font(self.DESCRIPTION_SIZE),
-                width=self.width - BOARDER * 2,
-            )
-            height += description.height + GAP * 2
-
-        canvas = Image.new("RGBA", (self.width, height), self.FOREGROUND_COLOR)
-
-        _h = BOARDER
-        if text:
-            canvas.paste(text, (BOARDER, _h), mask=text)
-            _h += text.height + GAP * 2
-        canvas.paste(bar, (BOARDER, _h), mask=bar)
-        _h += bar.height + GAP * 2
-        if description:
-            canvas.paste(description, (BOARDER, _h), mask=description)
-        return ImageUtil.round_corners(canvas, radius=BOARDER)
-
-    def render_bytes(self, jpeg: bool = True) -> bytes:
-        canvas = self.render()
-        output = BytesIO()
-        if jpeg:
-            canvas.convert("RGB").save(output, "JPEG")
-        else:
-            canvas.save(output, "PNG")
-        return output.getvalue()
+        canvas = ImageUtil.round_corners(canvas, radius=self.LEFT_BOARDER)
+        return canvas
 
 
 class Box(Element):
     @abstractmethod
     def __len__(self):
-        pass
-
-    @abstractmethod
-    def __hash__(self):
         pass
 
     @abstractmethod
@@ -494,143 +279,6 @@ class Box(Element):
         pass
 
 
-class MenuBoxItem(Element):
-    TEXT_COLOR: tuple[int, int, int]
-    DESCRIPTION_COLOR: tuple[int, int, int]
-    FOREGROUND_COLOR: tuple[int, int, int]
-
-    TEXT_SIZE: int = 35
-    DESCRIPTION_SIZE = 25
-    ICON_SIZE = BOARDER + GAP * 3
-
-    width: int
-    text: str | None
-    description: str | None
-    icon: Image.Image | None
-    icon_color: tuple[int, int, int] | Literal[True] | None
-
-    def __init__(
-        self,
-        text: str | None,
-        description: str | None,
-        icon: Image.Image | None = None,
-        icon_color: tuple[int, int, int] | Literal[True] | None = None,
-        *,
-        width: int = DEFAULT_WIDTH,
-        dark: bool = None,
-    ):
-        super().__init__()
-        if dark is None:
-            dark = is_dark()
-        if dark:
-            self.set_dark()
-        else:
-            self.set_light()
-
-        self.width = width
-        self.text = text
-        self.description = description
-        self.icon = icon
-        self.icon_color = icon_color
-
-    def __len__(self):
-        return 1
-
-    def __hash__(self):
-        return hash(
-            str(hash(f"MenuBoxItem{self.text}{self.description}{self.icon_color}"))
-            + str(hash(self.icon))
-        )
-
-    def set_dark(self) -> "MenuBoxItem":
-        self.TEXT_COLOR = Color.TEXT_COLOR_DARK
-        self.DESCRIPTION_COLOR = Color.DESCRIPTION_COLOR_DARK
-        self.FOREGROUND_COLOR = Color.FOREGROUND_COLOR_DARK
-        return self
-
-    def set_light(self) -> "MenuBoxItem":
-        self.TEXT_COLOR = Color.TEXT_COLOR_LIGHT
-        self.DESCRIPTION_COLOR = Color.DESCRIPTION_COLOR_LIGHT
-        self.FOREGROUND_COLOR = Color.FOREGROUND_COLOR_LIGHT
-        return self
-
-    def set_width(self, width: int) -> "MenuBoxItem":
-        self.width = width
-        return self
-
-    def render_icon(self) -> Image.Image | None:
-        if self.icon is None:
-            return None
-        color = self.icon_color
-        if isinstance(color, bool):
-            palette = random.choice(PALETTE)
-            _ = palette.replace("#", "")
-            color = (int(_[:2], 16), int(_[2:4], 16), int(_[4:6], 16))
-        elif color is None:
-            size = ICON_BASE.size[0] // 4 * 3, ICON_BASE.size[1] // 4 * 3
-            return self.icon.resize(size, Resampling.LANCZOS)
-        icon = IconUtil.replace_color(self.icon, (252, 252, 252))
-        base = IconUtil.replace_color(ICON_BASE, color)
-        size = base.size[0] // 3 * 2, base.size[1] // 3 * 2
-        icon = icon.resize(size, Resampling.LANCZOS)
-        icon = ImageUtil.paste_to_center(base, icon)
-        return icon
-
-    def render(self, round_corners: bool = False) -> Image.Image:
-        height = BOARDER * 2
-        text = None
-        description = None
-        if self.text:
-            text = TextUtil.render_text(
-                self.text,
-                self.TEXT_COLOR,
-                ImageUtil.get_font(self.TEXT_SIZE),
-                width=self.width - self.ICON_SIZE - BOARDER * 3 + GAP,
-            )
-            height += text.height
-        if self.description:
-            description = TextUtil.render_text(
-                self.description,
-                self.DESCRIPTION_COLOR,
-                ImageUtil.get_font(self.DESCRIPTION_SIZE),
-                width=self.width - self.ICON_SIZE - BOARDER * 3 + GAP,
-            )
-            height += description.height
-        if text and description:
-            height += GAP
-        canvas = Image.new("RGBA", (self.width, height), self.FOREGROUND_COLOR)
-
-        if icon := self.render_icon():
-            icon = icon.resize((self.ICON_SIZE, self.ICON_SIZE))
-            icon_x = BOARDER
-            icon_y = (canvas.height - icon.height) // 2
-            if icon.mode == "RGBA":
-                canvas.paste(icon, (icon_x, icon_y), mask=icon)
-            else:
-                canvas.paste(icon, (icon_x, icon_y))
-
-        _h = BOARDER
-        if text:
-            canvas.paste(text, (BOARDER * 3 + GAP * 2, _h), mask=text)
-            _h += text.height + GAP
-        if description:
-            canvas.paste(description, (BOARDER * 3 + GAP * 2, _h), mask=description)
-            _h += description.height + GAP
-
-        if round_corners:
-            return ImageUtil.round_corners(canvas, radius=BOARDER)
-        return canvas
-
-    def render_bytes(self, jpeg: bool = True, round_corners: bool = False) -> bytes:
-        canvas = self.render(round_corners=round_corners)
-        output = BytesIO()
-        if jpeg:
-            canvas.convert("RGB").save(output, "JPEG")
-        else:
-            canvas.save(output, "PNG")
-        return output.getvalue()
-
-
 class MenuBox(Box):
     """
     A box that mostly used in the menu.
@@ -638,115 +286,97 @@ class MenuBox(Box):
     Each text should be in one line for better display.
     """
 
-    NAME_SIZE: int = 30
+    HEIGHT: int = 120
+    WIDTH: int = ...
 
-    NAME_COLOR: tuple[int, int, int]
+    TEXT_COLOR: tuple[int, int, int]
+    DESCRIPTION_COLOR: tuple[int, int, int]
     FOREGROUND_COLOR: tuple[int, int, int]
-    BACKGROUND_COLOR: tuple[int, int, int]
     LINE_COLOR: tuple[int, int, int]
 
-    width: int
-    items: list[MenuBoxItem | Element]
-    name: str | None
+    ICON_BOARDER_RATIO: float = 0.29
+    LEFT_BOARDER_RATIO: float = 0.23
+    UP_BOARDER_RATIO: float = 0.20
+    TEXT_HEIGHT_RATIO: float = 0.34
+    DESCRIPTION_HEIGHT_RATIO: float = 0.25
+
+    ICON_BOARDER: int = int(HEIGHT * ICON_BOARDER_RATIO)
+    TEXT_HEIGHT: int = int(HEIGHT * TEXT_HEIGHT_RATIO)
+    DESCRIPTION_HEIGHT: int = int(HEIGHT * DESCRIPTION_HEIGHT_RATIO)
+    UP_BOARDER: int = int(HEIGHT * UP_BOARDER_RATIO)
+
+    ICON_SIZE = (HEIGHT - 2 * ICON_BOARDER, HEIGHT - 2 * ICON_BOARDER)
+    LEFT_BOARDER: int = ICON_BOARDER + ICON_SIZE[0] + int(HEIGHT * LEFT_BOARDER_RATIO)
+
+    __text: list[str]
+    __description: list[str]
+    __icon: list[Image.Image | None]
+    __icon_color: list[tuple[int, int, int] | None]
 
     def __init__(
         self,
         text: str = None,
         description: str = None,
         icon: Image.Image | None = None,
-        icon_color: tuple[int, int, int] | Literal[True] | None = True,
-        *,
+        icon_color: tuple[int, int, int] = None,
         width: int = DEFAULT_WIDTH,
         dark: bool = None,
-        name: str | None = None,
     ):
         """
         :param text: Text to display
         :param description: Description to display
         :param icon: Icon to display
-        :param icon_color: Color of the icon, True if random color
+        :param icon_color: Color of the icon
         :param width: Width of the box
         :param dark: Whether the box is dark or light
         """
 
         super().__init__()
-        self.items = []
+        if width <= self.HEIGHT:
+            raise ValueError(f"Width must be greater than {self.HEIGHT}")
         if dark is None:
             dark = is_dark()
         if dark:
             self.set_dark()
         else:
             self.set_light()
-
-        self.width = width
-        self.name = name
-        if name is None and description is None:
+        self.WIDTH = width
+        if text and description:
+            self.__text = [text]
+            self.__description = [description]
+            self.__icon = [icon]
+            self.__icon_color = [icon_color]
             return
-        self.items.append(
-            MenuBoxItem(
-                text=text,
-                description=description,
-                icon=icon,
-                icon_color=icon_color,
-                width=width,
-                dark=dark,
-            )
-        )
+        self.__text = []
+        self.__description = []
+        self.__icon = []
+        self.__icon_color = []
 
-    def set_dark(self) -> "MenuBox":
-        self.NAME_COLOR = Color.DESCRIPTION_COLOR_DARK
+    def set_dark(self):
+        self.TEXT_COLOR = Color.TEXT_COLOR_DARK
+        self.DESCRIPTION_COLOR = Color.DESCRIPTION_COLOR_DARK
         self.FOREGROUND_COLOR = Color.FOREGROUND_COLOR_DARK
-        self.BACKGROUND_COLOR = Color.BACKGROUND_COLOR_DARK
         self.LINE_COLOR = Color.LINE_COLOR_DARK
-        for item in self.items:
-            item.set_dark()
-        return self
 
-    def set_light(self) -> "MenuBox":
-        self.NAME_COLOR = Color.DESCRIPTION_COLOR_LIGHT
+    def set_light(self):
+        self.TEXT_COLOR = Color.TEXT_COLOR_LIGHT
+        self.DESCRIPTION_COLOR = Color.DESCRIPTION_COLOR_LIGHT
         self.FOREGROUND_COLOR = Color.FOREGROUND_COLOR_LIGHT
-        self.BACKGROUND_COLOR = Color.BACKGROUND_COLOR_LIGHT
         self.LINE_COLOR = Color.LINE_COLOR_LIGHT
-        for item in self.items:
-            item.set_light()
-        return self
-
-    def set_width(self, width: int) -> "MenuBox":
-        self.width = width
-        for item in self.items:
-            item.set_width(width)
-        return self
-
-    def set_name(self, name: str | None) -> "MenuBox":
-        """
-        Set the name of the box.
-
-        :param name: The name to be set
-        :return: Self
-        """
-
-        self.name = name
-        return self
 
     def __len__(self) -> int:
-        return len(self.items)
-
-    def __hash__(self):
-        return hash("".join([str(hash(item)) for item in self.items]))
+        return len(self.__text)
 
     def has_content(self) -> bool:
-        return len(self.items) > 0
+        return len(self.__text) > 0
 
     def add(
         self,
-        text: str | None = None,
-        description: str | None = None,
+        text: str,
+        description: str,
         icon: Image.Image | None = None,
-        icon_color: tuple[int, int, int] | Literal[True] | None = None,
-        *,
-        element: Element = None,
-        sub: bool = True,
-    ) -> "MenuBox":
+        icon_color: tuple[int, int, int] = None,
+    ):
         """
         Add an item to the box.
 
@@ -754,221 +384,91 @@ class MenuBox(Box):
         :param description: The description to display.
         :param icon: The icon to display.
         :param icon_color: The color of the icon.
-        :param element: The element to be added.
-        :param sub: Whether the element is in the sub-level.
-        :return: The box itself.
+        :return: None
         """
 
-        if text or description:
-            self.items.append(
-                MenuBoxItem(
-                    text=text,
-                    description=description,
-                    icon=icon,
-                    icon_color=icon_color,
-                    width=self.width,
-                )
-            )
-        elif element:
-            self.items.append(
-                element.set_width(self.width - BOARDER * 2 if sub else self.width)
-            )
-        return self
+        self.__text.append(text)
+        self.__description.append(description)
+        self.__icon.append(icon)
+        self.__icon_color.append(icon_color)
+
+    @staticmethod
+    def render_icon(
+        icon: Image.Image | None, color: tuple[int, int, int] | None
+    ) -> Image.Image | None:
+        """
+        Render an icon.
+
+        :param icon: The icon to render.
+        :param color: The color of the icon.
+        :return: The rendered icon.
+        """
+
+        if icon is None:
+            return None
+        icon = IconUtil.replace_color(icon, (252, 252, 252))
+        if not color:
+            palette = random.choice(PALETTE)
+            _ = palette[1:]
+            color = (int(_[:2], 16), int(_[2:4], 16), int(_[4:6], 16))
+        base = IconUtil.replace_color(ICON_BASE, color)
+        size = base.size[0] // 3 * 2, base.size[1] // 3 * 2
+        icon = icon.resize(size, Resampling.LANCZOS)
+        icon = ImageUtil.paste_to_center(base, icon)
+        return icon
 
     def render(self) -> Image.Image | None:
         if not self.has_content():
             return
-        items = [item.render() for item in self.items]
-        height = sum(item.height for item in items)
-
-        name = None
-        base = None
-        if self.name:
-            name = TextUtil.render_text(
-                self.name,
-                self.NAME_COLOR,
-                ImageUtil.get_font(self.NAME_SIZE),
-                width=self.width - BOARDER * 2,
+        canvas = Image.new(
+            "RGBA", (self.WIDTH, self.HEIGHT * len(self.__text)), self.FOREGROUND_COLOR
+        )
+        for index, (text, description, icon, icon_color) in enumerate(
+            zip(self.__text, self.__description, self.__icon, self.__icon_color)
+        ):
+            if icon := self.render_icon(icon, icon_color):
+                icon = icon.resize(self.ICON_SIZE, Resampling.LANCZOS)
+                canvas.paste(
+                    icon,
+                    (self.ICON_BOARDER, self.ICON_BOARDER + index * self.HEIGHT),
+                    mask=icon,
+                )
+            font = ImageUtil.get_font(int(self.TEXT_HEIGHT * 0.8))
+            text = TextUtil.render_text(text, self.TEXT_COLOR, font)
+            description_font = ImageUtil.get_font(int(self.DESCRIPTION_HEIGHT * 0.8))
+            description = TextUtil.render_text(
+                description, self.DESCRIPTION_COLOR, description_font
             )
-            base = Image.new(
-                "RGBA", (self.width, height + name.height + GAP), self.BACKGROUND_COLOR
+            canvas.paste(
+                text,
+                (
+                    self.LEFT_BOARDER,
+                    self.UP_BOARDER + index * self.HEIGHT,
+                ),
+                mask=text,
             )
-
-        canvas = Image.new("RGBA", (self.width, height), self.FOREGROUND_COLOR)
-        _h = 0
-        lines = []
-        for item in items:
-            canvas.paste(item, ((canvas.width - item.width) // 2, _h), mask=item)
-            _h += item.height
-            lines.append(_h)
-        for line in lines:
+            canvas.paste(
+                description,
+                (
+                    self.LEFT_BOARDER,
+                    self.UP_BOARDER + index * self.HEIGHT + self.TEXT_HEIGHT,
+                ),
+                mask=description,
+            )
+            if index == len(self.__text) - 1:
+                continue
             canvas = ImageUtil.draw_line(
                 canvas,
-                BOARDER * 3 + GAP * 2,
-                line,
-                canvas.width - BOARDER,
-                line,
-                color=self.LINE_COLOR,
-                width=1,
+                self.LEFT_BOARDER,
+                self.HEIGHT * (index + 1),
+                canvas.width - self.ICON_BOARDER,
+                self.HEIGHT * (index + 1),
+                self.LINE_COLOR,
+                2,
             )
 
-        canvas = ImageUtil.round_corners(canvas, radius=BOARDER)
-        if not name:
-            return canvas
-        base.paste(name, (BOARDER, 0), mask=name)
-        base.paste(canvas, (0, name.height + GAP), mask=canvas)
-        return base
-
-    def render_bytes(self, jpeg: bool = True) -> bytes | None:
-        if (canvas := self.render()) is None:
-            return
-        output = BytesIO()
-        if jpeg:
-            canvas.convert("RGB").save(output, "JPEG")
-        else:
-            canvas.save(output, "PNG")
-        return output.getvalue()
-
-
-class GeneralBoxItem(Element):
-    TEXT_COLOR: tuple[int, int, int]
-    DESCRIPTION_COLOR: tuple[int, int, int]
-    FOREGROUND_COLOR: tuple[int, int, int]
-    HIGHLIGHT_COLOR: tuple[int, int, int]
-    SWITCH_ENABLED: tuple[int, int, int]
-    SWITCH_DISABLED: tuple[int, int, int]
-
-    TEXT_SIZE: int = 35
-    SWITCH_HEIGHT: int = 45
-    DESCRIPTION_SIZE = 25
-    UPPER_BOARDER: int = BOARDER // 2
-
-    width: int
-    text: str | None
-    description: str | None
-    highlight: bool
-    switch: bool | None
-
-    def __init__(
-        self,
-        text: str | None,
-        description: str | None,
-        highlight: bool = False,
-        switch: bool | None = None,
-        *,
-        width: int = DEFAULT_WIDTH,
-        dark: bool = None,
-    ):
-        super().__init__()
-        if dark is None:
-            dark = is_dark()
-        if dark:
-            self.set_dark()
-        else:
-            self.set_light()
-
-        self.width = width
-        self.text = text
-        self.description = description
-        self.highlight = highlight
-        self.switch = switch
-
-    def __len__(self):
-        return 1
-
-    def __hash__(self):
-        return hash(str(hash(f"GeneralBoxItem{self.text}{self.description}")))
-
-    def set_dark(self) -> "GeneralBoxItem":
-        self.TEXT_COLOR = Color.TEXT_COLOR_DARK
-        self.DESCRIPTION_COLOR = Color.DESCRIPTION_COLOR_DARK
-        self.FOREGROUND_COLOR = Color.FOREGROUND_COLOR_DARK
-        self.HIGHLIGHT_COLOR = Color.HIGHLIGHT_COLOR_DARK
-        self.SWITCH_ENABLED = Color.SWITCH_ENABLE_COLOR
-        self.SWITCH_DISABLED = Color.SWITCH_DISABLE_COLOR_DARK
-        return self
-
-    def set_light(self) -> "GeneralBoxItem":
-        self.TEXT_COLOR = Color.TEXT_COLOR_LIGHT
-        self.DESCRIPTION_COLOR = Color.DESCRIPTION_COLOR_LIGHT
-        self.FOREGROUND_COLOR = Color.FOREGROUND_COLOR_LIGHT
-        self.HIGHLIGHT_COLOR = Color.HIGHLIGHT_COLOR_LIGHT
-        self.SWITCH_ENABLED = Color.SWITCH_ENABLE_COLOR
-        self.SWITCH_DISABLED = Color.SWITCH_DISABLE_COLOR_LIGHT
-        return self
-
-    def set_width(self, width: int) -> "GeneralBoxItem":
-        self.width = width
-        return self
-
-    def render(self, round_corners: bool = False) -> Image.Image | None:
-        if not self.text and not self.description:
-            return
-        height = self.UPPER_BOARDER * 2
-        switch = None
-        text = None
-        description = None
-        if isinstance(self.switch, bool):
-            switch = SWITCH_ICON_ON if self.switch else SWITCH_ICON_OFF
-            switch = IconUtil.replace_color(
-                switch, self.SWITCH_ENABLED if self.switch else self.SWITCH_DISABLED
-            )
-
-            switch_width = switch.width * self.SWITCH_HEIGHT // switch.height
-            switch = switch.resize((switch_width, self.SWITCH_HEIGHT))
-            text_width = self.width - BOARDER * 3 - switch.width
-        else:
-            text_width = self.width - BOARDER * 2
-        if self.text:
-            text = TextUtil.render_text(
-                self.text,
-                self.TEXT_COLOR,
-                ImageUtil.get_font(self.TEXT_SIZE),
-                width=text_width,
-            )
-            height += text.height
-        if self.description:
-            description = TextUtil.render_text(
-                self.description,
-                self.HIGHLIGHT_COLOR if self.highlight else self.DESCRIPTION_COLOR,
-                ImageUtil.get_font(self.DESCRIPTION_SIZE),
-                width=text_width,
-            )
-            height += description.height
-        if text and description:
-            height += GAP
-        canvas = Image.new("RGBA", (self.width, height), self.FOREGROUND_COLOR)
-        _h = self.UPPER_BOARDER
-        if text:
-            canvas.paste(text, (BOARDER, _h), mask=text)
-            _h += text.height + GAP
-        if description:
-            canvas.paste(description, (BOARDER, _h), mask=description)
-            _h += description.height + GAP
-        if switch:
-            canvas.paste(
-                switch,
-                (
-                    canvas.width - BOARDER - switch.width,
-                    (canvas.height - switch.height) // 2,
-                ),
-                mask=switch,
-            )
-
-        if round_corners:
-            return ImageUtil.round_corners(canvas, radius=BOARDER)
+        canvas = ImageUtil.round_corners(canvas, radius=self.ICON_BOARDER)
         return canvas
-
-    def render_bytes(
-        self, jpeg: bool = True, round_corners: bool = False
-    ) -> bytes | None:
-        canvas = self.render(round_corners=round_corners)
-        output = BytesIO()
-        if jpeg:
-            canvas.convert("RGB").save(output, "JPEG")
-        else:
-            canvas.save(output, "PNG")
-        return output.getvalue()
 
 
 class GeneralBox(Box):
@@ -977,16 +477,38 @@ class GeneralBox(Box):
     Each item should have a text and a description, switch icon is optional.
     """
 
-    NAME_COLOR: tuple[int, int, int]
+    STANDARD_HEIGHT = 120
+
+    TEXT_COLOR: tuple[int, int, int]
+    DESCRIPTION_COLOR: tuple[int, int, int]
     FOREGROUND_COLOR: tuple[int, int, int]
-    BACKGROUND_COLOR: tuple[int, int, int]
     LINE_COLOR: tuple[int, int, int]
+    HIGHLIGHT_COLOR: tuple[int, int, int]
 
-    NAME_SIZE: int = 30
+    LEFT_BOARDER_RATIO: float = 0.06
+    UP_BOARDER_RATIO: float = 0.2
+    TEXT_ICON_BOARDER_RATIO: float = 0.8
 
-    width: int
-    items: list[GeneralBoxItem | Element]
-    name: str | None
+    TEXT_HEIGHT_RATIO: float = 0.34
+    DESCRIPTION_HEIGHT_RATIO: float = 0.25
+
+    TEXT_HEIGHT: int = int(STANDARD_HEIGHT * TEXT_HEIGHT_RATIO)
+    DESCRIPTION_HEIGHT: int = int(STANDARD_HEIGHT * DESCRIPTION_HEIGHT_RATIO)
+
+    TEXT_FONT = ImageUtil.get_font(int(TEXT_HEIGHT * 0.8))
+    DESCRIPTION_FONT = ImageUtil.get_font(int(DESCRIPTION_HEIGHT * 0.8))
+
+    LEFT_BOARDER: int = ...
+    TEXT_ICON_BOARDER: int = ...
+    UP_BOARDER: int = int(STANDARD_HEIGHT * UP_BOARDER_RATIO)
+
+    DESCRIPTION_OFFSET_Y: int = 7
+
+    __text: list[str]
+    __description: list[str | None]
+    __switch: list[bool | None]
+    __highlight: list[bool]
+    __dark: bool
 
     def __init__(
         self,
@@ -994,8 +516,6 @@ class GeneralBox(Box):
         description: str | None = None,
         switch: bool | None = None,
         highlight: bool = False,
-        *,
-        name: str = None,
         width: int = DEFAULT_WIDTH,
         dark: bool = None,
     ):
@@ -1008,154 +528,188 @@ class GeneralBox(Box):
         """
 
         super().__init__()
-        self.items = []
+        self.__dark = dark
+        if width <= self.STANDARD_HEIGHT:
+            raise ValueError(f"Width must be greater than {self.STANDARD_HEIGHT}")
         if dark is None:
             dark = is_dark()
         if dark:
             self.set_dark()
         else:
             self.set_light()
-        self.width = width
-        self.name = name
-        if text or description:
-            self.items.append(
-                GeneralBoxItem(
-                    text=text,
-                    description=description,
-                    highlight=highlight,
-                    switch=switch,
-                    width=width,
-                    dark=dark,
-                )
-            )
+        self.WIDTH = width
+        self.LEFT_BOARDER = int(self.WIDTH * self.LEFT_BOARDER_RATIO)
+        self.TEXT_ICON_BOARDER = int(self.WIDTH * self.TEXT_ICON_BOARDER_RATIO)
+        if text:
+            self.__text = [text]
+            self.__description = [description]
+            self.__switch = [switch]
+            self.__highlight = [highlight]
+            return
+        self.__text = []
+        self.__description = []
+        self.__switch = []
+        self.__highlight = []
 
-    def set_dark(self) -> "GeneralBox":
+    def set_dark(self):
+        self.TEXT_COLOR = Color.TEXT_COLOR_DARK
+        self.DESCRIPTION_COLOR = Color.DESCRIPTION_COLOR_DARK
         self.FOREGROUND_COLOR = Color.FOREGROUND_COLOR_DARK
-        self.BACKGROUND_COLOR = Color.BACKGROUND_COLOR_DARK
-        self.NAME_COLOR = Color.DESCRIPTION_COLOR_DARK
         self.LINE_COLOR = Color.LINE_COLOR_DARK
-        for item in self.items:
-            item.set_dark()
-        return self
+        self.HIGHLIGHT_COLOR = Color.HIGHLIGHT_COLOR_DARK
 
-    def set_light(self) -> "GeneralBox":
+    def set_light(self):
+        self.TEXT_COLOR = Color.TEXT_COLOR_LIGHT
+        self.DESCRIPTION_COLOR = Color.DESCRIPTION_COLOR_LIGHT
         self.FOREGROUND_COLOR = Color.FOREGROUND_COLOR_LIGHT
-        self.BACKGROUND_COLOR = Color.BACKGROUND_COLOR_LIGHT
-        self.NAME_COLOR = Color.DESCRIPTION_COLOR_LIGHT
         self.LINE_COLOR = Color.LINE_COLOR_LIGHT
-        for item in self.items:
-            item.set_light()
-        return self
-
-    def set_width(self, width: int) -> "GeneralBox":
-        self.width = width
-        for item in self.items:
-            item.set_width(width)
-        return self
-
-    def set_name(self, name: str | None) -> "GeneralBox":
-        self.name = name
-        return self
+        self.HIGHLIGHT_COLOR = Color.HIGHLIGHT_COLOR_LIGHT
 
     def __len__(self):
-        return len(self.items)
-
-    def __hash__(self):
-        return hash("".join([str(hash(item)) for item in self.items]))
+        return len(self.__text)
 
     def has_content(self) -> bool:
-        return len(self.items) > 0
+        return len(self.__text) > 0
 
     def add(
         self,
-        text: str = None,
-        description: str | None = None,
+        text: str,
+        description: str | None,
         switch: bool | None = None,
         highlight: bool | None = None,
-        *,
-        element: Element = None,
-        sub: bool = True,
-    ) -> "GeneralBox":
+    ):
         """
         Add a new item to the box.
         :param text: Text to display
         :param description: Description to display
         :param switch: Switch to display
         :param highlight: Whether the item is highlighted
-        :param element: The element to be added
-        :param sub: Whether the element is in sub-level
-        :return: The box itself
         """
+        self.__text.append(text)
+        self.__description.append(description)
+        self.__switch.append(switch)
+        self.__highlight.append(highlight)
 
-        if text or description:
-            self.items.append(
-                GeneralBoxItem(
-                    text=text,
-                    description=description,
-                    switch=switch,
-                    highlight=highlight,
-                    width=self.width,
-                )
+    def render_item(
+        self,
+        text: str,
+        description: str | None,
+        switch: bool | None,
+        highlight: bool,
+    ):
+        canvas_height = self.UP_BOARDER * 2
+        text_width = (
+            int(self.WIDTH * self.TEXT_ICON_BOARDER_RATIO - self.LEFT_BOARDER)
+            if switch is not None
+            else self.WIDTH - self.LEFT_BOARDER * 2
+        )
+        text_img = TextUtil.render_text(
+            text=text, color=self.TEXT_COLOR, font=self.TEXT_FONT, width=text_width
+        )
+        canvas_height += text_img.height
+        description_img = None
+        if description:
+            description_color = (
+                self.HIGHLIGHT_COLOR if highlight else self.DESCRIPTION_COLOR
             )
-        elif element:
-            self.items.append(
-                element.set_width(self.width - BOARDER * 2 if sub else self.width)
+            description_img = TextUtil.render_text(
+                text=description,
+                color=description_color,
+                font=self.DESCRIPTION_FONT,
+                width=text_width,
             )
-        return self
+            canvas_height += description_img.height + self.DESCRIPTION_OFFSET_Y
+        canvas = Image.new(
+            "RGBA",
+            (
+                self.WIDTH,
+                canvas_height,
+            ),
+            self.FOREGROUND_COLOR,
+        )
+        canvas.paste(
+            text_img,
+            (self.LEFT_BOARDER, self.UP_BOARDER),
+            mask=text_img,
+        )
+        if description_img:
+            canvas.paste(
+                description_img,
+                (
+                    self.LEFT_BOARDER,
+                    self.UP_BOARDER + text_img.height + self.DESCRIPTION_OFFSET_Y,
+                ),
+                mask=description_img,
+            )
+        if switch is None:
+            return canvas
+        switch_icon = SWITCH_ICON_ON if switch else SWITCH_ICON_OFF
+        switch_size = (
+            switch_icon.width * self.TEXT_HEIGHT // switch_icon.height,
+            self.TEXT_HEIGHT,
+        )
+        if switch:
+            switch_color = Color.SWITCH_ENABLE_COLOR
+        else:
+            switch_color = (
+                Color.SWITCH_DISABLE_COLOR_DARK
+                if self.__dark
+                else Color.SWITCH_DISABLE_COLOR
+            )
+        switch_img = IconUtil.replace_color(
+            switch_icon.resize(switch_size, Resampling.LANCZOS),
+            switch_color,
+        )
+        canvas.paste(
+            switch_img,
+            (
+                self.WIDTH - self.LEFT_BOARDER - switch_img.width,
+                (canvas.height - switch_img.height) // 2,
+            ),
+            mask=switch_img,
+        )
+
+        return canvas
 
     def render(self) -> Image.Image | None:
         if not self.has_content():
             return
-        items = [item.render() for item in self.items]
-        height = sum(item.height for item in items)
-
-        name = None
-        base = None
-        if self.name:
-            name = TextUtil.render_text(
-                self.name,
-                self.NAME_COLOR,
-                ImageUtil.get_font(self.NAME_SIZE),
-                width=self.width - BOARDER * 2,
+        rendered = [
+            self.render_item(text, description, switch, highlight)
+            for text, description, switch, highlight in zip(
+                self.__text, self.__description, self.__switch, self.__highlight
             )
-            base = Image.new(
-                "RGBA", (self.width, height + name.height + GAP), self.BACKGROUND_COLOR
-            )
+        ]
+        width = self.WIDTH
+        height = sum(map(lambda x: x.height, rendered))
+        canvas = Image.new("RGBA", (width, height), self.FOREGROUND_COLOR)
+        _height = 0
 
-        canvas = Image.new("RGBA", (self.width, height), self.FOREGROUND_COLOR)
-        _h = 0
-        lines = []
-        for item in items:
-            canvas.paste(item, ((canvas.width - item.width) // 2, _h), mask=item)
-            _h += item.height
-            lines.append(_h)
-        for line in lines:
+        line_y: list[int] = []
+        for index, item in enumerate(rendered):
+            canvas.paste(
+                item,
+                (0, _height),
+                mask=item,
+            )
+            _height += item.height
+            if index == len(self.__text) - 1:
+                continue
+            line_y.append(_height)
+
+        for y in line_y:
             canvas = ImageUtil.draw_line(
                 canvas,
-                BOARDER,
-                line,
-                canvas.width - BOARDER,
-                line,
-                color=self.LINE_COLOR,
-                width=1,
+                self.LEFT_BOARDER,
+                y,
+                canvas.width - self.LEFT_BOARDER,
+                y,
+                self.LINE_COLOR,
+                2,
             )
 
-        canvas = ImageUtil.round_corners(canvas, radius=BOARDER)
-        if not name:
-            return canvas
-        base.paste(name, (BOARDER, 0), mask=name)
-        base.paste(canvas, (0, name.height + GAP), mask=canvas)
-        return base
-
-    def render_bytes(self, jpeg: bool = True) -> bytes | None:
-        if (canvas := self.render()) is None:
-            return
-        output = BytesIO()
-        if jpeg:
-            canvas.convert("RGB").save(output, "JPEG")
-        else:
-            canvas.save(output, "PNG")
-        return output.getvalue()
+        canvas = ImageUtil.round_corners(canvas, radius=self.LEFT_BOARDER)
+        return canvas
 
 
 class HintBox(Box):
@@ -1163,17 +717,29 @@ class HintBox(Box):
     A box that displays a highlighted text.
     """
 
-    width: int = ...
+    STANDARD_HEIGHT: int = 200
 
     TEXT_COLOR: tuple[int, int, int]
     HIGHLIGHT_COLOR: tuple[int, int, int]
     FOREGROUND_COLOR: tuple[int, int, int]
 
-    TITLE_SIZE: int = 35
-    TEXT_SIZE: int = 30
+    LEFT_BOARDER_RATIO: float = 0.06
+    UP_BOARDER_RATIO: float = 0.18
 
-    title: str | None
-    hints: list[str]
+    LEFT_BOARDER: int = ...
+    UP_BOARDER: int = int(STANDARD_HEIGHT * UP_BOARDER_RATIO)
+
+    TITLE_GRID_RATIO: float = 0.11
+    GRID_RATIO: float = 0.10
+
+    TITLE_GRID: int = int(STANDARD_HEIGHT * TITLE_GRID_RATIO)
+    GRID: int = int(STANDARD_HEIGHT * GRID_RATIO)
+
+    TITLE_FONT = ImageUtil.get_font(33)
+    TEXT_FONT = ImageUtil.get_font(30)
+
+    __title: str | None
+    __hints: list[str]
 
     def __init__(
         self,
@@ -1190,343 +756,75 @@ class HintBox(Box):
         """
 
         super().__init__()
+        if width <= self.STANDARD_HEIGHT:
+            raise ValueError(f"Width must be greater than {self.STANDARD_HEIGHT}")
         if dark is None:
             dark = is_dark()
+        self.__dark = dark
         if dark:
             self.set_dark()
         else:
             self.set_light()
-        self.width = width
-        self.title = title
-        self.hints = list(hint)
+        self.WIDTH = width
+        self.LEFT_BOARDER = int(self.WIDTH * self.LEFT_BOARDER_RATIO)
+        self.__title = title
+        self.__hints = list(hint)
 
-    def set_dark(self) -> "HintBox":
+    def set_dark(self):
         self.TEXT_COLOR = Color.TEXT_COLOR_DARK
         self.FOREGROUND_COLOR = Color.HINT_COLOR_DARK
         self.HIGHLIGHT_COLOR = Color.HIGHLIGHT_COLOR_DARK
-        return self
 
-    def set_light(self) -> "HintBox":
+    def set_light(self):
         self.TEXT_COLOR = Color.TEXT_COLOR_LIGHT
         self.FOREGROUND_COLOR = Color.HINT_COLOR_LIGHT
         self.HIGHLIGHT_COLOR = Color.HIGHLIGHT_COLOR_LIGHT
-        return self
-
-    def set_width(self, width: int) -> "HintBox":
-        self.width = width
-        return self
 
     def __len__(self):
-        return len(self.hints) + bool(self.title)
-
-    def __hash__(self):
-        return hash(self.title + str(self.hints))
+        return len(self.__hints) + bool(self.__title)
 
     def has_content(self) -> bool:
-        return len(self.hints) + bool(self.title) > 0
+        return len(self.__hints) + bool(self.__title) > 0
 
-    def add(self, *hints: str) -> "HintBox":
-        self.hints.extend(hints)
-        return self
+    def add(self, *hints: str):
+        self.__hints.extend(hints)
 
     def render(self) -> Image.Image | None:
         if not self.has_content():
             return
-        height = BOARDER * 2
-        title = None
-        hints = []
-        if self.title:
+        height = self.UP_BOARDER * 2
+        parts: list[Image.Image] = []
+        part_y: list[int] = [self.UP_BOARDER]
+        if self.__title:
             title = TextUtil.render_text(
-                self.title,
+                self.__title,
                 self.TEXT_COLOR,
-                ImageUtil.get_font(self.TITLE_SIZE),
-                width=self.width - BOARDER * 2,
+                self.TITLE_FONT,
+                self.WIDTH - self.LEFT_BOARDER * 2,
             )
-            height += title.height
-        for hint in self.hints:
-            hint = TextUtil.render_text(
+            parts.append(title)
+            height += title.height + self.TITLE_GRID
+            part_y.append(part_y[-1] + title.height + self.TITLE_GRID)
+        for index, hint in enumerate(self.__hints):
+            part = TextUtil.render_text(
                 hint,
                 self.HIGHLIGHT_COLOR,
-                ImageUtil.get_font(self.TEXT_SIZE),
-                width=self.width - BOARDER * 2,
+                self.TEXT_FONT,
+                self.WIDTH - self.LEFT_BOARDER * 2,
             )
-            hints.append(hint)
-            height += hint.height
-
-        if hints:
-            height += BOARDER * (len(hints) - 1)
-            if title:
-                height += BOARDER
-
-        canvas = Image.new("RGBA", (self.width, height), self.FOREGROUND_COLOR)
-
-        _h = BOARDER
-        if title:
-            canvas.paste(title, (BOARDER, _h), mask=title)
-            _h += title.height + BOARDER
-
-        for hint in hints:
-            canvas.paste(hint, (BOARDER, _h), mask=hint)
-            _h += hint.height + BOARDER
-
-        return ImageUtil.round_corners(canvas, radius=BOARDER)
-
-    def render_bytes(self, jpeg: bool = True) -> bytes | None:
-        if (canvas := self.render()) is None:
-            return
-        output = BytesIO()
-        if jpeg:
-            canvas.convert("RGB").save(output, "JPEG")
-        else:
-            canvas.save(output, "PNG")
-        return output.getvalue()
-
-
-class ImageBox(Box):
-    width: int
-    MAX_HEIGHT_PER_COLLAGE: int
-    single_bypass: bool
-
-    collage: list[list[Image]]
-    collage_setting: list[tuple[int, int | None] | None]
-    transparent: bool
-    crop: bool
-
-    LINE_COLOR: tuple[int, int, int]
-    BACKGROUND_COLOR: tuple[int, int, int]
-
-    def __init__(
-        self,
-        *elements: Image.Image | list[Image.Image],
-        width: int = DEFAULT_WIDTH,
-        max_height: int = None,
-        single_bypass: bool = True,
-        dark: bool = None,
-        transparent: bool = True,
-        crop: bool = True,
-    ):
-        super().__init__()
-        if dark is None:
-            dark = is_dark()
-        if dark:
-            self.set_dark()
-        else:
-            self.set_light()
-
-        self.MAX_HEIGHT_PER_COLLAGE = max_height or width
-        self.width = width
-        self.single_bypass = single_bypass
-        self.transparent = transparent
-        self.crop = crop
-        self.collage = [[]]
-        self.collage_setting = [None]
-        self.add(*elements)
-
-    def __len__(self):
-        return len(self.collage)
-
-    def __hash__(self):
-        return hash(str(hash(image)) for image in self.extract())
-
-    def add(
-        self, *elements: Image.Image | list[Image.Image], index: int = None
-    ) -> "ImageBox":
-        for element in elements:
-            if isinstance(element, Image.Image):
-                self.collage[index if index is not None else -1].append(element)
+            parts.append(part)
+            height += part.height
+            if index == len(self.__hints) - 1:
                 continue
-            elif isinstance(element, list):
-                if element := [
-                    _element
-                    for _element in element
-                    if isinstance(_element, Image.Image)
-                ]:
-                    self.collage.append(element)
-                    self.collage_setting.append(None)
-        return self
+            height += self.GRID
+            part_y.append(part_y[-1] + part.height + self.GRID)
 
-    def extract(self) -> list[Image.Image]:
-        images: list[Image.Image] = []
-        for collage in self.collage:
-            images.extend(collage)
-        return images
+        canvas = Image.new("RGBA", (self.WIDTH, height), self.FOREGROUND_COLOR)
+        for y, part in zip(part_y, parts):
+            canvas.paste(part, (self.LEFT_BOARDER, y), mask=part)
 
-    def has_content(self) -> bool:
-        return bool(self.extract())
-
-    def set_dark(self) -> "ImageBox":
-        self.LINE_COLOR = Color.LINE_COLOR_DARK
-        self.BACKGROUND_COLOR = Color.FOREGROUND_COLOR_DARK
-        return self
-
-    def set_light(self) -> "ImageBox":
-        self.LINE_COLOR = Color.LINE_COLOR_LIGHT
-        self.BACKGROUND_COLOR = Color.FOREGROUND_COLOR_LIGHT
-        return self
-
-    def set_width(self, width: int) -> "ImageBox":
-        self.width = width
-        return self
-
-    def set_collage(self, left: int, right: int | None, index: int = -1) -> "ImageBox":
-        """
-        Set the collage mode of the box.
-
-        :param left: Number of images on the left
-        :param right: Number of images on the right
-        :param index: Index of collage to be set
-        :return: self
-        """
-
-        self.collage_setting[index] = (left, right)
-        return self
-
-    def resize_image(self, image: Image.Image) -> Image.Image:
-        width = self.width
-        height = int(image.height * width / image.width)
-        return image.resize((width, height))
-
-    def crop_image(self, image: Image.Image, width: int, height: int) -> Image.Image:
-        if not self.crop:
-            return image.resize((width, height))
-
-        ratio = width / height
-        if image.width / image.height < ratio:
-            new_width = width
-            new_height = int(image.height * width / image.width)
-            left = 0
-            upper = int((new_height - height) / 2)
-            right = new_width
-            lower = int((new_height + height) / 2)
-        else:
-            new_width = int(image.width * height / image.height)
-            new_height = height
-            left = int((new_width - width) / 2)
-            upper = 0
-            right = int((new_width + width) / 2)
-            lower = new_height
-        return image.resize((new_width, new_height)).crop((left, upper, right, lower))
-
-    def combine_images(self, images: list[Image.Image]) -> Image.Image:
-        height = sum(image.height for image in images)
-        base = Image.new("RGBA", (self.width, height), self.BACKGROUND_COLOR)
-        _h = 0
-        lines = []
-        for image in images:
-            if image.mode == "RGBA":
-                base.paste(image, (0, _h), mask=image)
-            else:
-                base.paste(image, (0, _h))
-            _h += image.height
-            lines.append(_h)
-        for line in lines:
-            base = ImageUtil.draw_line(
-                base, 0, line, base.width, line, color=self.LINE_COLOR, width=1
-            )
-        return base
-
-    def render_collage(self, index: int) -> Image.Image | None:
-        if not (collage := self.collage[index]):
-            return
-        if len(collage) == 1 and self.single_bypass:
-            img: Image.Image = collage[0]
-            new_width = self.width
-            new_height = img.height * self.width // img.width
-            return img.resize((new_width, new_height))
-
-        if not (collage_setting := self.collage_setting[index]):
-            images = [self.resize_image(image) for image in collage]
-            if not images:
-                return
-            return self.combine_images(images)
-
-        left_count, right_count = collage_setting
-        right_count = left_count + right_count if right_count is not None else -1
-        left_images = collage[:left_count]
-        right_images = collage[left_count:right_count]
-        image_width = int(self.width // 2) if right_images else self.width
-        left = [
-            self.crop_image(
-                image,
-                width=image_width,
-                height=self.MAX_HEIGHT_PER_COLLAGE // len(left_images),
-            )
-            for image in left_images
-        ]
-        right = [
-            self.crop_image(
-                image,
-                width=image_width,
-                height=self.MAX_HEIGHT_PER_COLLAGE // len(right_images),
-            )
-            for image in right_images
-        ]
-        base = Image.new(
-            "RGBA",
-            (self.width, self.MAX_HEIGHT_PER_COLLAGE),
-            color=self.BACKGROUND_COLOR,
-        )
-
-        def _paste(
-            _base: Image.Image,
-            _images: list[Image.Image],
-            _width: int,
-            _line_length: int,
-        ):
-            _h = 0
-            for _image in _images:
-                if self.transparent and _image.mode == "RGBA":
-                    _base.paste(_image, (_width, _h), mask=_image)
-                else:
-                    _base.paste(_image, (_width, _h))
-                if _h != 0:
-                    _base = ImageUtil.draw_line(
-                        _base,
-                        _width,
-                        _h,
-                        _width + _line_length,
-                        _h,
-                        color=self.LINE_COLOR,
-                        width=1,
-                    )
-                _h += _image.height
-            return _base
-
-        if right:
-            base = _paste(base, left, 0, image_width)
-            base = _paste(base, right, image_width, image_width)
-            base = ImageUtil.draw_line(
-                base,
-                image_width,
-                0,
-                image_width,
-                base.height,
-                color=self.LINE_COLOR,
-                width=1,
-            )
-        else:
-            base = _paste(base, left, 0, self.width)
-
-        return base
-
-    def render(self) -> Image.Image | None:
-        if not self.extract():
-            return
-
-        collages: list[Image.Image] = [
-            self.render_collage(index) for index in range(len(self.collage))
-        ]
-
-        return ImageUtil.round_corners(self.combine_images(collages), radius=BOARDER)
-
-    def render_bytes(self, jpeg: bool = True) -> bytes | None:
-        canvas = self.render()
-        output = BytesIO()
-        if jpeg:
-            canvas.convert("RGB").save(output, "JPEG")
-        else:
-            canvas.save(output, "PNG")
-        return output.getvalue()
+        canvas = ImageUtil.round_corners(canvas, radius=self.LEFT_BOARDER)
+        return canvas
 
 
 class Column(Box):
@@ -1536,14 +834,17 @@ class Column(Box):
 
     BACKGROUND_COLOR: tuple[int, int, int]
     FOREGROUND_COLOR: tuple[int, int, int]
-    length: int
+    LENGTH: int
+
+    GRID_SIZE: int = 36
 
     width: int
-    parts: list[Element | Image.Image]
+    has_banner: bool
+    __rendered: list[Image.Image]
 
     def __init__(
         self,
-        *args: Element | Image.Image | GraiaImage,
+        *args: Element | Image.Image,
         width: int = DEFAULT_WIDTH,
         dark: bool = None,
     ):
@@ -1561,96 +862,89 @@ class Column(Box):
         else:
             self.BACKGROUND_COLOR = Color.BACKGROUND_COLOR_LIGHT
             self.FOREGROUND_COLOR = Color.FOREGROUND_COLOR_LIGHT
-        self.length = 0
+        self.LENGTH = 0
         self.width = width
-        self.parts = []
+        self.has_banner = False
+        self.__rendered = []
         for element in args:
             self.add(element)
 
-    def __len__(self):
-        return self.length
+    def set_dark(self):
+        raise NotImplementedError(
+            "Dark mode of Column cannot be set once it is created."
+        )
 
-    def __hash__(self):
-        return hash("".join([str(hash(part)) for part in self.parts]))
+    def set_light(self):
+        raise NotImplementedError(
+            "Dark mode of Column cannot be set once it is created."
+        )
+
+    def __len__(self):
+        return self.LENGTH
 
     def has_content(self) -> bool:
-        return self.length > 0
+        return self.LENGTH > 0
 
-    def set_dark(self) -> "Column":
-        for element in self.parts:
-            element.set_dark()
-        return self
-
-    def set_light(self) -> "Column":
-        for element in self.parts:
-            element.set_light()
-        return self
-
-    def set_width(self, width: int) -> "Column":
-        self.width = width
-        for element in self.parts:
-            element.set_width(width)
-        return self
-
-    def add(
-        self, *elements: Element | Image.Image | GraiaImage, dark: bool = None
-    ) -> "Column":
+    def add(self, *elements: Element | Image.Image):
         """
         Add an element to the column.
 
         :param elements: The element to add, can be an element or an image.
-        :param dark: Override dark mode, None if not override.
-        :return: The column itself.
+        :return: None
         """
 
         for element in elements:
-            if isinstance(element, GraiaImage):
-                try:
-                    element = Image.open(BytesIO(b64decode(element.base64)))
-                except Exception as err:
-                    logger.error(f"Failed to load image from GraiaImage: {err}")
-                    continue
             if isinstance(element, Image.Image):
-                element = ImageBox(element)
-            if dark is not None:
-                if dark:
-                    element.set_dark()
-                else:
-                    element.set_light()
-            element.set_width(self.width)
-            self.length += len(element)
-            self.parts.append(element)
-        return self
+                size = (self.width, self.width * element.height // element.width)
+                element = element.resize(size, Resampling.LANCZOS)
+                element = ImageUtil.round_corners(element, radius=self.GRID_SIZE)
+                self.__rendered.append(element)
+                self.LENGTH += 1
+                continue
+            if not (rendered := element.render()):
+                continue
+            if isinstance(element, Element):
+                self.LENGTH += len(element)
+            else:
+                self.LENGTH += round(element.height / MenuBox.HEIGHT)
+            if isinstance(element, Banner):
+                self.has_banner = True
+                self.__rendered.insert(0, rendered)
+                continue
+            self.__rendered.append(rendered)
 
     def render(self) -> Image.Image:
         width = self.width
-        rendered = [element.render() for element in self.parts]
+        rendered = []
+        for element in self.__rendered:
+            if element.width != width:
+                size = (width, width * element.height // element.width)
+                element = element.resize(size, Resampling.LANCZOS)
+                element = ImageUtil.round_corners(element, radius=self.GRID_SIZE)
+            rendered.append(element)
+        height = sum(element.height for element in rendered) + self.GRID_SIZE * (
+            len(rendered) - 1
+        )
 
-        height = sum(element.height for element in rendered) + BOARDER * (len(rendered))
+        if not self.has_banner:
+            height += self.GRID_SIZE
+            _height = self.GRID_SIZE
+        else:
+            _height = 0
 
-        _height = BOARDER
         canvas = Image.new("RGBA", (width, height), self.BACKGROUND_COLOR)
         for element in rendered:
-            if element.mode == "RGBA":
+            try:
                 canvas.paste(
                     element,
                     (0, _height),
                     mask=element,
                 )
-            else:
+            except ValueError:
                 canvas.paste(element, (0, _height))
-            _height += element.height + BOARDER
+            _height += element.height + self.GRID_SIZE
 
         return canvas
-
-    def render_bytes(self, jpeg: bool = True) -> bytes:
-        canvas = self.render()
-        output = BytesIO()
-        if jpeg:
-            canvas.convert("RGB").save(output, "JPEG")
-        else:
-            canvas.save(output, "PNG")
-        return output.getvalue()
 
 
 class OneUIMock:
@@ -1662,8 +956,7 @@ class OneUIMock:
 
     GRID_SIZE: int = 36
 
-    parts: list[Column]
-    dark: bool
+    __rendered: list[Image.Image]
 
     def __init__(self, *args: Column, dark: bool = None):
         """
@@ -1673,51 +966,24 @@ class OneUIMock:
 
         if dark is None:
             dark = is_dark()
-        self.dark = dark
         if dark:
             self.BACKGROUND_COLOR = Color.BACKGROUND_COLOR_DARK
         else:
             self.BACKGROUND_COLOR = Color.BACKGROUND_COLOR_LIGHT
-        self.parts = []
+        self.__rendered = []
         for element in args:
             self.add(element)
 
-    def add(self, *elements: Element) -> "OneUIMock":
+    def add(self, element: Column):
         """
         Add a column to the mockery.
 
-        :param elements: The element to add.
-        :return: The mockery itself.
+        :param element: The column to add.
+        :return: None
         """
 
-        if not elements:
-            raise ValueError("No elements to add.")
-
-        if not self.parts and not isinstance(elements[0], Column):
-            self.parts = [Column()]
-        for element in elements:
-            if not isinstance(element, Column):
-                self.parts[-1].add(element, dark=self.dark)
-            else:
-                self.parts.append(element)
-        return self
-
-    def set_dark(self) -> "OneUIMock":
-        for element in self.parts:
-            element.set_dark()
-        self.dark = True
-        return self
-
-    def set_light(self) -> "OneUIMock":
-        for element in self.parts:
-            element.set_light()
-        self.dark = False
-        return self
-
-    def set_width(self, width: int) -> "OneUIMock":
-        for element in self.parts:
-            element.set_width(width)
-        return self
+        rendered = element.render()
+        self.__rendered.append(rendered)
 
     def render(self) -> Image.Image:
         """
@@ -1727,19 +993,17 @@ class OneUIMock:
         :return: The rendered mockery.
         """
 
-        rendered = [element.render() for element in self.parts]
-
-        height = max(element.height for element in rendered) + self.GRID_SIZE
-        width = sum(element.width for element in rendered)
-        if len(rendered) > 1:
-            width += self.GRID_SIZE * (len(rendered) + 1)
+        height = max(element.height for element in self.__rendered) + self.GRID_SIZE
+        width = sum(element.width for element in self.__rendered)
+        if len(self.__rendered) > 1:
+            width += self.GRID_SIZE * (len(self.__rendered) + 1)
             _width = self.GRID_SIZE
         else:
             _width = 0
 
         canvas = Image.new("RGBA", (width, height), self.BACKGROUND_COLOR)
 
-        for element in rendered:
+        for element in self.__rendered:
             canvas.paste(
                 element,
                 (_width, 0),
