@@ -4,4 +4,4 @@ config.json
 /poetry.lock
 log/
 .vscode/
-module/mc/
+**/mc
