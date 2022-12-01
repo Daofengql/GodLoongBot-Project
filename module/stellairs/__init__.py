@@ -41,13 +41,14 @@ PATH = os.path.dirname(__file__) + "/assets/"
 
 
 
+
 @stellairs.use(
     ListenerSchema(
         listening_events=[GroupMessage],
         inline_dispatchers=[
             Twilight(
                 [
-                    UnionMatch("签到").help("主控制器")
+                    UnionMatch("签到","打卡",".签到",".打卡").help("主控制器")
                 ]
             )
         ],
