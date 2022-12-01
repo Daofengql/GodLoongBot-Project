@@ -98,29 +98,6 @@ async def stellairs_handle(
         param = param.result.display
         func = func.result.display
 
-    #撤回终止命令检测
-    @Waiter.create_using_function(listening_events=[GroupRecallEvent])
-    async def waiter(e: GroupRecallEvent):
-        if e.message_id == message.get_first(Source).id: return True
-    try:
-        status = await asyncio.wait_for(
-            InterruptControl(app.broadcast).wait(waiter), 4
-        )
-        #如果有撤回事件响应，则终止等待，return返回结束处理
-        if status:
-            await app.send_group_message(
-                group, 
-                MessageChain(
-                    Plain("用户撤回了命令，操作已终止")
-                ),
-                quote=message.get_first(Source)
-            )
-            return
-    except asyncio.exceptions.TimeoutError:
-        #如果检测撤回超时则意味着等待结束，开始进行正式任务处理
-        pass
-    aioHTTPsession = Ariadne.service.client_session
-
     #签到功能
     if func in ("-Signin", "获取今日能量币", "签到"):
         ret = await DailySignin(app, group, event)
@@ -168,5 +145,4 @@ async def stellairs_handle(
         ret,
         quote=message.get_first(Source)
     )
-    await asyncio.sleep(3)
     #await app.recall_message(message=tmpmessageid.id,target=group)
