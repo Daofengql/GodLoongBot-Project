@@ -23,6 +23,7 @@ from .generation import (
     genSignPic,
     genRankPic,
 )
+import uuid
 
 pattern = re.compile(r'[\u4e00-\u9fa5A-Za-z0-9^=?$\x22.]+')
 db = mysql_db_pool()
@@ -85,7 +86,7 @@ async def DailySignin(
         first = first.scalars().all()
         if not first:
             # 如果不存在，则添加新用户
-            await app.send_group_message(
+            asyncio.create_task(app.send_group_message(
                 group,
                 MessageChain(
                     Plain("新的链接已接入~~~\n检测到《SOL "),
@@ -97,6 +98,8 @@ async def DailySignin(
                     ),
                 ),
                 quote=event.message_chain.get_first(Source),
+            ),
+            name=uuid.uuid4()
             )
 
 
@@ -114,20 +117,23 @@ async def DailySignin(
 
             species = await getRandSpecies()
 
-            await session.execute(
-                insert(User).values(
-                    qq=event.sender.id,
-                    group=group.id,
-                    lasttime=datetime.datetime.strptime(
-                        datetime.datetime.now().strftime("%Y-%m-%d 00:00:00"),
-                        "%Y-%m-%d %H:%M:%S",
-                    ),
-                    coin=coinincrease,
-                    nickname=name,
-                    iron=0,
-                    unity=100,
-                    species=species
-                )
+            asyncio.create_task(
+                session.execute(
+                    insert(User).values(
+                        qq=event.sender.id,
+                        group=group.id,
+                        lasttime=datetime.datetime.strptime(
+                            datetime.datetime.now().strftime("%Y-%m-%d 00:00:00"),
+                            "%Y-%m-%d %H:%M:%S",
+                        ),
+                        coin=coinincrease,
+                        nickname=name,
+                        iron=0,
+                        unity=100,
+                        species=species
+                    )
+                ),
+                    name=uuid.uuid4()
             )
             img = await genSignPic(
                 group.id,
@@ -176,7 +182,10 @@ async def getMyInfo(
 ) -> MessageChain:
     """获取自身资源数据"""
 
-    await app.send_group_message(group, "Situation Log Updated ...... Waitting.....")
+    asyncio.create_task(
+        app.send_group_message(group, "Situation Log Updated ...... Waitting....."),
+        name=uuid.uuid4()
+            )
     dbsession = await db.get_db_session()
     async with dbsession() as session:
         first = await session.execute(
@@ -211,9 +220,12 @@ async def getGroupRank(
     app: Ariadne, group: Group, types: str
 ) -> MessageChain:
     """获取群排行榜"""
-    await app.send_group_message(group, f"正在获取位面[{group.id}]的排名")
+    asyncio.create_task(
+        app.send_group_message(group, f"正在获取位面[{group.id}]的排名"),
+        name=uuid.uuid4()
+            )
 
-    img = await genRankPic(group.id, types)
+    img = await asyncio.create_task(genRankPic(group.id, types),name=uuid.uuid4())
     return MessageChain(Image(data_bytes=img))
 
 
@@ -280,7 +292,7 @@ async def convertAssets(
                 first.coin = first.coin - 1500*dat
                 first.iron = first.iron + dat
 
-                await session.commit()
+                asyncio.create_task(session.commit())
                 return MessageChain(f"兑换成功，消耗{dat*1500}能量币兑换了{dat}合金")
 
     except err.DataError: 

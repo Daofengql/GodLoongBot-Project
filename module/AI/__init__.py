@@ -476,4 +476,3 @@ async def translate_handle(
                 quote=message.get_first(Source)
 
     )
-    return

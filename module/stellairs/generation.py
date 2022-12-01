@@ -133,8 +133,7 @@ async def genRankPic(group,types:str) -> bytes:
         column.add(box1, box2)
 
     mock = OneUIMock(column)
-    rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))
-    rendered_bytes = rendered_bytes[0]
+    rendered_bytes = await asyncio.to_thread(mock.render_bytes)
     return rendered_bytes
 
 #不得不吧这东西搬过来

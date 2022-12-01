@@ -10,7 +10,7 @@ import datetime
 from sqlalchemy import insert
 import pickle
 from io import BytesIO
-
+import asyncio
 
 logger = Channel.current()
 logger.name("消息记录插件")
@@ -41,7 +41,7 @@ async def sign(
     
     try:
         async with dbsession() as session:
-            await session.execute(
+            await asyncio.create_task(session.execute(
                 insert(Logger).values(
                     qq = event.sender.id,
                     group=group.id,
@@ -49,8 +49,8 @@ async def sign(
                     msg=msg,
                     sendtime = datetime.datetime.now()
                 )
-            )
-            await session.commit()
+            ))
+            asyncio.create_task(session.commit())
     except:
         pass
 

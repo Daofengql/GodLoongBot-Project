@@ -29,6 +29,7 @@ from .utils import (
 )
 import aiofiles
 import asyncio
+import uuid
 
 stellairs = Channel.current()
 
@@ -60,7 +61,7 @@ async def stellairs_handle2(
     event: GroupMessage,
     message: MessageChain
 ): 
-    await stellairs_handle(app,group,event,message,"签到","签到")
+    asyncio.create_task(stellairs_handle(app,group,event,message,"签到","签到"))
 
 
 @stellairs.use(
@@ -140,9 +141,11 @@ async def stellairs_handle(
         ret = MessageChain(f"啊哦，顾问{config.name}不知道您想干嘛")
 
     #规定ret变量为消息链返回参数，所有功能的结束都返回一个消息链赋值给ret用于状态显示
-    await app.send_group_message(
-        group, 
-        ret,
-        quote=message.get_first(Source)
-    )
-    #await app.recall_message(message=tmpmessageid.id,target=group)
+    asyncio.create_task(
+        app.send_group_message(
+            group, 
+            ret,
+            quote=message.get_first(Source)
+        ),
+            name=uuid.uuid4()
+            )
