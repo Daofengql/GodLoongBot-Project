@@ -4,7 +4,17 @@ from graia.ariadne.message.chain import MessageChain
 from graia.saya import Channel
 from graia.saya.builtins.broadcast.schema import ListenerSchema
 from library.config import config
+from graia.ariadne.model import Group
 import datetime
+from graia.ariadne.message.element import Image, At, Plain, Source, AtAll
+from graia.ariadne.event.message import GroupMessage
+from graia.ariadne.message.parser.twilight import (
+    Twilight,
+    UnionMatch,
+    MatchResult,
+    WildcardMatch,
+    FullMatch
+)
 
 
 LAST_QEQUEST = datetime.datetime.now()
@@ -42,3 +52,21 @@ async def getup(app: Ariadne, event: NudgeEvent):
         )
         
 
+@nudge.use(
+    ListenerSchema(
+        listening_events=[GroupMessage],
+        inline_dispatchers=[
+            Twilight(
+                [
+                    UnionMatch("帮助","菜单",".help").help("主控制器")
+                ]
+            )
+        ],
+        )
+    )
+async def getup(app: Ariadne, event: GroupMessage,group: Group):
+    await app.send_group_message(
+        target=group,
+        message = MessageChain(f"{config.name}在，寻求帮助请查看使用文档{config.docs}")
+    )
+        
