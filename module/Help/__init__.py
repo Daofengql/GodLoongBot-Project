@@ -70,3 +70,21 @@ async def getup(app: Ariadne, event: GroupMessage,group: Group):
         message = MessageChain(f"{config.name}在，寻求帮助请查看使用文档{config.docs}")
     )
         
+
+from library.vault import dbexec
+d = dbexec()
+@nudge.use(
+    ListenerSchema(
+        listening_events=[GroupMessage],
+        inline_dispatchers=[
+            Twilight(
+                [
+                    UnionMatch("c1").help("主控制器")
+                ]
+            )
+        ],
+        )
+    )
+async def getup(app: Ariadne, event: GroupMessage,group: Group):
+    print(2)
+        

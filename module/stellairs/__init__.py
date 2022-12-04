@@ -105,7 +105,7 @@ async def stellairs_handle(
 
     #获取用户自身信息
     elif func in ("-MyInfo", "我的信息"):   
-        ret = await getMyInfo(app, group, event)
+        ret = await getMyInfo(group, event)
 
     #用户主动刷新数据库名字
     elif func in ("-ChangeMyInfo", "更新名字"):
