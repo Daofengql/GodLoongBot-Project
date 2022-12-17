@@ -5,7 +5,7 @@ from library.config import config
 
 from graia.ariadne.app import Ariadne
 from graia.ariadne.message.element import Image, At, Plain, Source, AtAll
-from graia.ariadne.event.message import GroupMessage
+from graia.ariadne.event.message import GroupMessage, FriendMessage
 from graia.ariadne.event.mirai import MemberHonorChangeEvent
 from graia.ariadne.message.chain import MessageChain
 from graia.saya.builtins.broadcast import ListenerSchema
@@ -19,6 +19,8 @@ from graia.ariadne.message.parser.twilight import (
     MatchResult,
     WildcardMatch,
 )
+
+import time
 
 from library.orm.extra import mysql_db_pool
 
@@ -253,3 +255,15 @@ async def MemberHonorChange(
             message=message
         )
     return
+
+@aleater.use(SchedulerSchema(timers.every_custom_seconds(30)))
+async def stats(app: Ariadne):
+    """
+    定时反馈状态
+    """
+    start = time.time()
+    await app.get_group_list()
+    end =  time.time()
+    ms = end - start
+    session = Ariadne.service.client_session
+    asyncio.create_task(session.get(f"https://status.loongapi.com/api/push/RDdDjCw7fi?status=up&msg=OK&ping={ms}")) 

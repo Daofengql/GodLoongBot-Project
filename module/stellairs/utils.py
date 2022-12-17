@@ -113,7 +113,8 @@ async def DailySignin(
             user.coin + coinincrease,
             user.iron,
             user.unity,
-            user.species
+            user.species,
+            event.sender.id
         )
     else:
         asyncio.create_task(
@@ -152,7 +153,8 @@ async def DailySignin(
                 coinincrease,
                 0,
                 100,
-                species
+                species,
+                event.sender.id
             )
 
     return MessageChain(Image(data_bytes=img))
@@ -177,7 +179,8 @@ async def getMyInfo(
             first.coin,
             first.iron,
             first.unity,
-            first.species
+            first.species,
+            first.id
         )
     return MessageChain(Image(data_bytes=img))
 

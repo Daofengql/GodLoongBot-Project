@@ -58,11 +58,11 @@ async def genRankPic(lists,group,types:str) -> bytes:
 
 @aiocache.cached(ttl=1800)
 async def genSignPic(
-    group:int, nickname:str, coin:int, iron:int, unity:int,id:int
+    group:int, nickname:str, coin:int, iron:int, unity:int,id:int,qqid:int
 ) -> bytes:
-
+    print(qqid)
     session = Ariadne.service.client_session
-    async with session.get(f"https://v1.loongapi.com/v1/bot/stellairs/species/card/image?name={nickname}&id={id}&cash={coin}&alloys={iron}&unity={unity}&group={group}") as resp:
+    async with session.get(f"https://v1.loongapi.com/v1/bot/stellairs/species/card/image?name={nickname}&id={id}&cash={coin}&alloys={iron}&unity={unity}&group={group}&qqid={qqid}") as resp:
         img = PImage.open(BytesIO(await resp.content.read()))
         b = BytesIO()
         img.save(b,format="PNG")
