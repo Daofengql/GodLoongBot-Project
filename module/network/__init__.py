@@ -54,25 +54,23 @@ async def pingmod(
     addr = addr.result.display
     port = port.result.display
 
-    try:
-        if func == "-ping":
-            rely = await pingip(addr)
-        elif func == "-tcping" and port:
 
-            rely = await tcpingip(addr,port)
-        elif func == "-dns":
-            rely = await dnsrecord(addr,port)
+    if func == "-ping":
+        rely = await pingip(addr)
+    elif func == "-tcping" and port:
 
-        elif func == "-whois":
-            rely = await whois(addr)
+        rely = await tcpingip(addr,port)
+    elif func == "-dns":
+        rely = await dnsrecord(addr,port)
 
-        elif func == "-aton":
-            rely = await aton(addr)
+    elif func == "-whois":
+        rely = await whois(addr)
 
-        else:
-            rely = "很抱歉，未知的操作"
-    except:
-        rely = "操作异常"
+    elif func == "-aton":
+        rely = await aton(addr)
+
+    else:
+        rely = "很抱歉，未知的操作"
 
     await app.send_group_message(
         target=group,

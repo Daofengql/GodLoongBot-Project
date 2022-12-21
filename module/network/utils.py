@@ -9,6 +9,7 @@ from aiocache import cached
 import asyncio
 import ipaddress
 import re
+from library.loongapi.models import Model_ret
 
 
 pattern = re.compile(r'[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?')
@@ -36,12 +37,13 @@ def pings(args):
         else:  return {"host":args,"ip":ip_address,"delay":"超时或禁ping","code":"1"}
             
             
-async def ipinfo(args):
+async def ipinfo(args)->Model_ret:
     session = Ariadne.service.client_session
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36"}
-    url = f"https://api.s1.hanwuss.com/tools/net/ip/address?ip={args}"
+    url = f"https://v1.loongapi.com/v1/tool/ip/info?addr={args}"
     async with session.get(url, headers = headers,timeout=120) as response1:
-        return {"code":1,"Msg":"成功","data":(await response1.json())["info"]}
+        r = Model_ret.parse_obj(await response1.json())
+        return r
 
 
 @cached(ttl=300)
@@ -49,14 +51,14 @@ async def pingip(arg)->MessageChain:
     args = str(arg).strip()
     pingw = pings(args)
     info = await ipinfo(pingw['ip'])
-    if info["code"]:
+    if info.code == 200:
         try:
-            addr = info["data"]["country"]
-            city = info["data"]["isp"]
+            addr = info.result.cz88.address
+            city = info.result.cz88.isp
         except:addr = city = "查询失败"
     else:addr = city = "查询失败"
 
-    column = Column(Banner("Ping查询"), Header("查询返回", "基于位于东京的机器人检测网络返回数据"))
+    column = Column(Banner("Ping查询"), Header("查询返回", "基于位于圣何塞的机器人检测网络返回数据"))
     box = GeneralBox()
     box.add(f"IP/域名：{pingw['host']}","")
     box.add(f"响应ip：{pingw['ip']}","")
@@ -65,8 +67,7 @@ async def pingip(arg)->MessageChain:
     box.add(f"ISP：{city}","")
     column.add(box)
     mock = OneUIMock(column)
-    rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))
-    rendered_bytes= rendered_bytes[0]
+    rendered_bytes = await asyncio.to_thread(mock.render_bytes)
     return MessageChain(
         Image(data_bytes=rendered_bytes)
 
@@ -84,10 +85,10 @@ async def tcpingip(host,port)->MessageChain:
     else:time = f"{time}ms"
     
     info = await ipinfo(ip_address)
-    if info["code"]:
+    if info.code == 200:
         try:
-            addr = info["data"]["country"]
-            city = info["data"]["isp"]
+            addr = info.result.cz88.address
+            city = info.result.cz88.isp
         except:addr = city = "查询失败"
     else:addr = city = "查询失败"
     
@@ -101,8 +102,8 @@ async def tcpingip(host,port)->MessageChain:
     box.add(f"ISP：{city}","")
     column.add(box)
     mock = OneUIMock(column)
-    rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))
-    rendered_bytes= rendered_bytes[0]
+    rendered_bytes = await asyncio.to_thread(mock.render_bytes)
+
     return MessageChain(
         Image(data_bytes=rendered_bytes)
 
@@ -142,8 +143,7 @@ async def dnsrecord(
         except:box.add("检测错误","")
     column.add(box)
     mock = OneUIMock(column)
-    rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))
-    rendered_bytes= rendered_bytes[0]
+    rendered_bytes = await asyncio.to_thread(mock.render_bytes)
     return MessageChain(Image(data_bytes=rendered_bytes))
 
 
@@ -200,8 +200,7 @@ async def whois(
             column.add(box1)
             column.add(box2)
             mock = OneUIMock(column)
-        rendered_bytes = await asyncio.gather(asyncio.to_thread(mock.render_bytes))
-        rendered_bytes= rendered_bytes[0]
+        rendered_bytes = await asyncio.to_thread(mock.render_bytes)
         return MessageChain(Image(data_bytes=rendered_bytes))
 
 
