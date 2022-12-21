@@ -60,7 +60,6 @@ async def genRankPic(lists,group,types:str) -> bytes:
 async def genSignPic(
     group:int, nickname:str, coin:int, iron:int, unity:int,id:int,qqid:int
 ) -> bytes:
-    print(qqid)
     session = Ariadne.service.client_session
     async with session.get(f"https://v1.loongapi.com/v1/bot/stellairs/species/card/image?name={nickname}&id={id}&cash={coin}&alloys={iron}&unity={unity}&group={group}&qqid={qqid}") as resp:
         img = PImage.open(BytesIO(await resp.content.read()))
