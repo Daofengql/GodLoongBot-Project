@@ -31,6 +31,7 @@ utils = "^1.0.1"
 xmltojson = "^2.0.1"
 azure-cognitiveservices-speech = "^1.24.2"
 aio-mc-rcon = "^3.2.0"
+PySSTV = "^0.5.4"
 
 [tool.poetry.dev-dependencies]
 
