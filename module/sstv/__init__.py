@@ -27,6 +27,29 @@ import PIL.Image as PIMG
 from io import BytesIO
 from aiocache import cached
 
+
+from threading import Thread
+class MyThread(Thread):
+    def __init__(self, func, args):
+        super(MyThread, self).__init__()
+        self.func = func
+        self.args = args
+
+    def run(self):
+        try:
+            self.result = self.func(*self.args)
+        except Exception:
+            return None
+
+    def get_result(self):
+        try:
+            return self.result
+        except Exception:
+            return None
+            
+
+
+
 @cached(ttl=30000)
 async def gentoSSTV(mod: MatchResult,imgdata):
     if mod.matched:
@@ -37,7 +60,7 @@ async def gentoSSTV(mod: MatchResult,imgdata):
     img = PIMG.open(
         BytesIO(
                 imgdata
-            ))
+            )).convert("RGB")
 
     img = img.resize((320,int((320/img.width)*img.height)))
     if mod == "M1":
@@ -52,7 +75,11 @@ async def gentoSSTV(mod: MatchResult,imgdata):
         a = ScottieS2(image=img,samples_per_sec=48000,bits=16)
     else:
         a = MartinM1(image=img,samples_per_sec=48000,bits=16)
-    a.write_wav(ret)
+
+    t1 = MyThread(a.write_wav, args=(ret,))
+    t1.start()
+    while t1.is_alive():
+        await asyncio.sleep(1)
     ret.seek(0)
     audio_bytes = await silkcoder.async_encode(ret.read(), ios_adaptive=True)
     return audio_bytes

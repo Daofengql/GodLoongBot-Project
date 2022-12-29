@@ -34,6 +34,25 @@ def cmdline(cmds):
     return f.read()
 maker = TextToImage()
 
+from threading import Thread
+class MyThread(Thread):
+    def __init__(self, func, args):
+        super(MyThread, self).__init__()
+        self.func = func
+        self.args = args
+
+    def run(self):
+        try:
+            self.result = self.func(*self.args)
+        except Exception:
+            return None
+
+    def get_result(self):
+        try:
+            return self.result
+        except Exception:
+            return None
+
 
 @cmd.use(
     ListenerSchema(
@@ -86,10 +105,23 @@ async def runcmd(
         return
     
     try:
-        back = await asyncio.gather(asyncio.to_thread(cmdline,args))
-        back = str("以下内容由服务器直接返回：\n"+back[0])
-        dat = await asyncio.gather(asyncio.to_thread(maker.create_image,back,130))
-        dat = dat[0]
+        
+        back = await asyncio.to_thread(cmdline,args)
+        t1 = MyThread(cmdline, args=(args,))
+        t1.start()
+        while t1.is_alive():
+            await asyncio.sleep(0.1)
+        back = t1.get_result()
+
+
+        back = str("以下内容由服务器直接返回：\n"+back)
+        t1 = MyThread(maker.create_image, args=(back,130,))
+        t1.start()
+        while t1.is_alive():
+            await asyncio.sleep(0.1)
+        dat = t1.get_result()
+
+        
         await app.send_message(
              group,
             MessageChain(Image(data_bytes=dat))
@@ -110,7 +142,7 @@ async def getNetworkinfo():
         try:
             start_time = te.time()* 1000
             async with httpx.AsyncClient() as client:
-                response1 = await client.get("https://api.s1.hanwuss.com/", headers = headers)
+                response1 = await client.get("https://v1.loongapi.com/", headers = headers)
                 json.loads(response1.text)
             stop_time = te.time()* 1000
             time = round(float(stop_time-start_time), 2)

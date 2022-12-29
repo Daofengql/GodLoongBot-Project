@@ -42,7 +42,6 @@ PATH = os.path.dirname(__file__) + "/assets/"
 
 
 
-
 @stellairs.use(
     ListenerSchema(
         listening_events=[GroupMessage],
