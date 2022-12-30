@@ -77,11 +77,7 @@ async def diange(
         await app.send_message(
             group,
             MessageChain(
-                "使用方法如下：\n\n",
-                "使用网易数据源：\n",
-                "点歌 -网易 [歌曲名]\n",
-                "点歌 -netease [歌曲名]\n\n",
-                "您也可以访问具体使用说明文档",
+                "使用方可以访问具体使用说明文档",
                 config.docs + "help/ent/music/",
                 "来获取更加详细的使用方法"
                 )

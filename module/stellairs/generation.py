@@ -16,6 +16,7 @@ from graia.ariadne.app import Ariadne
 
 PATH = Path(__file__).parent / "assets"
    
+from library.ToThread import run_withaio
 
 @aiocache.cached(ttl=600)
 async def genRankPic(lists,group,types:str) -> bytes:
@@ -52,7 +53,7 @@ async def genRankPic(lists,group,types:str) -> bytes:
         column.add(box1, box2)
 
     mock = OneUIMock(column)
-    rendered_bytes = await asyncio.to_thread(mock.render_bytes)
+    rendered_bytes = await run_withaio(mock.render_bytes,args=())
     return rendered_bytes
 
 

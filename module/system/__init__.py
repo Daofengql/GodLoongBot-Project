@@ -34,25 +34,7 @@ def cmdline(cmds):
     return f.read()
 maker = TextToImage()
 
-from threading import Thread
-class MyThread(Thread):
-    def __init__(self, func, args):
-        super(MyThread, self).__init__()
-        self.func = func
-        self.args = args
-
-    def run(self):
-        try:
-            self.result = self.func(*self.args)
-        except Exception:
-            return None
-
-    def get_result(self):
-        try:
-            return self.result
-        except Exception:
-            return None
-
+from library.ToThread import run_withaio
 
 @cmd.use(
     ListenerSchema(
@@ -97,7 +79,7 @@ async def runcmd(
         return
 
     if func.result.display in (".gc"):
-        gc.collect()
+        await run_withaio(gc.collect,args=())
         await app.send_message(
             group,
             MessageChain("内存回收已完成")
@@ -106,20 +88,11 @@ async def runcmd(
     
     try:
         
-        back = await asyncio.to_thread(cmdline,args)
-        t1 = MyThread(cmdline, args=(args,))
-        t1.start()
-        while t1.is_alive():
-            await asyncio.sleep(0.1)
-        back = t1.get_result()
-
+        back = await run_withaio(cmdline,(args,))
 
         back = str("以下内容由服务器直接返回：\n"+back)
-        t1 = MyThread(maker.create_image, args=(back,130,))
-        t1.start()
-        while t1.is_alive():
-            await asyncio.sleep(0.1)
-        dat = t1.get_result()
+
+        dat = await run_withaio(maker.create_image, args=(back,130,))
 
         
         await app.send_message(
@@ -156,25 +129,25 @@ async def getNetworkinfo():
     time1["avrage"] = round(float(t/2), 2)
     return time1
 
-async def getFileSize(filePath, size=0):
+def getFileSize(filePath, size=0):
     for root, dirs, files in os.walk(filePath):
         for f in files:  size += os.path.getsize(os.path.join(root, f))
     size = "机器人缓存目录占用：%0.2fM" % (size / 1024. / 1024.)
     return size
 
 # cpu信息
-async def get_cpu_info():
+def get_cpu_info():
     cpu_percent = psutil.cpu_percent(interval=1)
     cpu_info = "CPU使用率：%i%%" % cpu_percent
     return cpu_info
 
-async def get_cpu_info_2():
+def get_cpu_info_2():
     start_time ='服务器开机的时间是:{}\n'.format(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(psutil.boot_time())))
     pCPU = '服务器计算CPU个数:{}个\n'.format(psutil.cpu_count())
     vCPU = '服务器插槽CPU个数:{}个'.format(psutil.cpu_count(logical=False))
     return start_time + pCPU + vCPU
 # 内存信息
-async def get_memory_info():
+def get_memory_info():
     virtual_memory = psutil.virtual_memory()
     used_memory = virtual_memory.used/1024/1024/1024
     free_memory = virtual_memory.free/1024/1024/1024
@@ -182,7 +155,7 @@ async def get_memory_info():
     memory_info = "内存使用：%0.2fG，使用率%0.1f%%，剩余内存：%0.2fG" % (used_memory, memory_percent, free_memory)
     return memory_info
 
-async def get_current_memory():
+def get_current_memory():
 # 获取当前进程内存占用。
     pid = os.getpid()
     p = psutil.Process(pid)
@@ -190,7 +163,7 @@ async def get_current_memory():
     memory = "当前机器人占用内存大小：%0.2fM" % (info.uss / 1024. / 1024.)
     return memory
 #获取本地ip
-async def get_local_ip():
+def get_local_ip():
     local_ip = ""
     try:
         socket_objs = [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]
@@ -201,12 +174,13 @@ async def get_local_ip():
     return local_ip if("" != local_ip and None != local_ip) else socket.gethostbyname(socket.gethostname())
 
 async def getdata():
-    current = await get_current_memory()
-    mem = await get_memory_info()
-    cpus = await get_cpu_info()
+    current = await run_withaio(get_current_memory,args=())
+    mem = await run_withaio(get_memory_info,args=())
+    cpus =  await run_withaio(get_cpu_info,args=())
+
     tmpf = os.path.dirname(os.getcwd())+'/tmp'
-    FolderSize = await getFileSize(tmpf)
-    cpus2 = await get_cpu_info_2()
+    FolderSize = await run_withaio(getFileSize,args=(tmpf,))
+    cpus2 = await run_withaio(get_cpu_info_2,args=())
     netinfo = await getNetworkinfo()
     rely = f"{current}\n{mem}\n{cpus}\n{cpus2}\n机器人运行目录：{os.getcwd()}\n机器人缓存目录：{tmpf}\n{FolderSize}\n云中心链接速度：平均延迟{netinfo['avrage']}ms,共测试2次，错误{netinfo['timeout']}次，成功{netinfo['success']}次"
     if netinfo['timeout']>1 or netinfo['avrage']>500: rely = rely +"\n云中心链接不稳定，请注意"

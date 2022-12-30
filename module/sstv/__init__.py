@@ -28,24 +28,7 @@ from io import BytesIO
 from aiocache import cached
 
 
-from threading import Thread
-class MyThread(Thread):
-    def __init__(self, func, args):
-        super(MyThread, self).__init__()
-        self.func = func
-        self.args = args
-
-    def run(self):
-        try:
-            self.result = self.func(*self.args)
-        except Exception:
-            return None
-
-    def get_result(self):
-        try:
-            return self.result
-        except Exception:
-            return None
+from library.ToThread import run_withaio
             
 
 
@@ -76,10 +59,7 @@ async def gentoSSTV(mod: MatchResult,imgdata):
     else:
         a = MartinM1(image=img,samples_per_sec=48000,bits=16)
 
-    t1 = MyThread(a.write_wav, args=(ret,))
-    t1.start()
-    while t1.is_alive():
-        await asyncio.sleep(1)
+    await run_withaio(a.write_wav, args=(ret,))
     ret.seek(0)
     audio_bytes = await silkcoder.async_encode(ret.read(), ios_adaptive=True)
     return audio_bytes
