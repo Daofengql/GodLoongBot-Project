@@ -5,15 +5,17 @@ from ping3 import ping
 from graia.ariadne.message.chain import MessageChain
 from graia.ariadne.message.element import At, Image, Source, Plain
 from library.image.oneui_mock.elements import Column,GeneralBox,Banner,Header,OneUIMock
+
 from aiocache import cached
 import asyncio
 import ipaddress
 import re
 from library.loongapi.models import Model_ret
-
+from library.ToThread import run_withaio
+import PIL.Image as PImage
+from io import BytesIO
 
 pattern = re.compile(r'[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?')
-
 
 class tcping(object):
     def tcping(self, ip, port):
@@ -67,7 +69,7 @@ async def pingip(arg)->MessageChain:
     box.add(f"ISP：{city}","")
     column.add(box)
     mock = OneUIMock(column)
-    rendered_bytes = await asyncio.to_thread(mock.render_bytes)
+    rendered_bytes = await run_withaio(mock.render_bytes,args=())
     return MessageChain(
         Image(data_bytes=rendered_bytes)
 
@@ -102,7 +104,7 @@ async def tcpingip(host,port)->MessageChain:
     box.add(f"ISP：{city}","")
     column.add(box)
     mock = OneUIMock(column)
-    rendered_bytes = await asyncio.to_thread(mock.render_bytes)
+    rendered_bytes = await run_withaio(mock.render_bytes,args=())
 
     return MessageChain(
         Image(data_bytes=rendered_bytes)
@@ -143,7 +145,7 @@ async def dnsrecord(
         except:box.add("检测错误","")
     column.add(box)
     mock = OneUIMock(column)
-    rendered_bytes = await asyncio.to_thread(mock.render_bytes)
+    rendered_bytes = await run_withaio(mock.render_bytes,args=())
     return MessageChain(Image(data_bytes=rendered_bytes))
 
 
@@ -200,7 +202,7 @@ async def whois(
             column.add(box1)
             column.add(box2)
             mock = OneUIMock(column)
-        rendered_bytes = await asyncio.to_thread(mock.render_bytes)
+        rendered_bytes = await run_withaio(mock.render_bytes,args=())
         return MessageChain(Image(data_bytes=rendered_bytes))
 
 
@@ -221,3 +223,30 @@ async def aton(addr)->MessageChain:
         Plain(f"十进制转换:{tip}\n"),
         Plain(f"二进制转换:{bip}")
     )
+
+@cached(ttl=3600*24)
+async def icp(
+    domain
+)->MessageChain:
+    session = Ariadne.service.client_session
+
+    column = Column(Banner("备案查询"), Header("查询返回", ""))
+    
+
+    async with session.get(f'https://api.vvhan.com/api/icp?url={domain}') as response:
+        result:dict = await response.json(content_type="text/html")
+
+        if not result.get("success"):
+            box = GeneralBox()
+            box.add(f"域名：{domain} 未备案","请检查是否填写的为根域名而非子域名")
+            column.add(box)
+            mock = OneUIMock(column)
+        else:
+            box1 = GeneralBox()
+            async with session.get(f"https://api.vvhan.com/api/ico?url={domain}") as resp:
+                img = PImage.open(BytesIO(await resp.content.read()))
+            column.add(img)
+            column.add(box1)
+            mock = OneUIMock(column)
+        rendered_bytes = await asyncio.to_thread(mock.render_bytes)
+        return MessageChain(Image(data_bytes=rendered_bytes))
