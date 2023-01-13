@@ -20,7 +20,7 @@ from graia.broadcast.interrupt import Waiter, InterruptControl
 import zipfile,os,datetime
 
 from pathlib import Path
-from .webdav import uploadToAlist
+from library.webdav import uploadToAlist
 from urllib import parse
 
 PATH = Path(os.getcwd()) / "cache" / "btget"
@@ -157,7 +157,7 @@ async def getBT(app:Ariadne,group:Group,quote,page):
         zip_file.writestr(filename,data)
     zip_file.close()
     
-    stat = await uploadToAlist(strfile2,strfile)
+    stat = await uploadToAlist(strfile2,"/botOutLink/BTdownload/" + strfile)
     os.remove(strfile)
     if stat:
         return "https://fileportal.loongapi.com" + parse.quote(f"/d/资料/botOutLink/BTdownload/{strfile2}")

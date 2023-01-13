@@ -36,7 +36,7 @@ et.description("娱乐功能插件")
         ]
     )
 )
-async def pingmod(
+async def etmod(
     app: Ariadne,
     message: MessageChain,
     group: Group,
@@ -74,6 +74,7 @@ async def pingmod(
             return
         
         ret = await getBT(app,group,message.get_first(Source),pages[int(choice)-1])
+
     else:
         await app.send_group_message(
             target=group,

@@ -6,5 +6,5 @@ log/
 .vscode/
 **/mc
 cache/
-**webdav.py
+**webdavConf.json
 **shodanConf.json
