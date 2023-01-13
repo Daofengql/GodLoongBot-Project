@@ -3,7 +3,8 @@ from graia.ariadne.message.parser.twilight import (
     Twilight,
     UnionMatch,
     MatchResult,
-    ArgumentMatch
+    ArgumentMatch,
+    WildcardMatch
 )
 from graia.saya import Channel
 from graia.ariadne.event.message import GroupMessage
@@ -12,57 +13,10 @@ from graia.saya.builtins.broadcast import ListenerSchema
 
 from graia.ariadne.message.element import Image,Plain, Source, Quote, Voice
 from graia.ariadne.model import Group
-from graiax import silkcoder
 
 import asyncio
-
-from pysstv.color import (
-    MartinM1,
-    MartinM2,
-    Robot36,
-    ScottieS1,
-    ScottieS2
-)
-import PIL.Image as PIMG
-from io import BytesIO
-from aiocache import cached
-
-
-from library.ToThread import run_withaio
             
-
-
-
-@cached(ttl=30000)
-async def gentoSSTV(mod: MatchResult,imgdata):
-    if mod.matched:
-        mod = mod.result.display
-    else:
-        mod = "M1"
-    ret = BytesIO()
-    img = PIMG.open(
-        BytesIO(
-                imgdata
-            )).convert("RGB")
-
-    img = img.resize((320,int((320/img.width)*img.height)))
-    if mod == "M1":
-        a = MartinM1(image=img,samples_per_sec=48000,bits=16)
-    elif mod == "M2":
-        a = MartinM2(image=img,samples_per_sec=48000,bits=16)
-    elif mod == "R36":
-        a = Robot36(image=img,samples_per_sec=48000,bits=16)
-    elif mod == "S1":
-        a = ScottieS1(image=img,samples_per_sec=48000,bits=16)
-    elif mod == "S2":
-        a = ScottieS2(image=img,samples_per_sec=48000,bits=16)
-    else:
-        a = MartinM1(image=img,samples_per_sec=48000,bits=16)
-
-    await run_withaio(a.write_wav, args=(ret,))
-    ret.seek(0)
-    audio_bytes = await silkcoder.async_encode(ret.read(), ios_adaptive=True)
-    return audio_bytes
+from .utils import gentoSSTV,genMORSvoice
 
 
 sst = Channel.current()
@@ -149,7 +103,76 @@ async def ai_handle(
                 Voice(data_bytes=voice)
             )
         )
-    except:
+    except Exception:
+        await app.send_group_message(
+            target=group,
+            message=MessageChain(
+                "生成错误"
+            )
+        )
+
+
+@sst.use(
+    ListenerSchema(
+        listening_events=[GroupMessage],
+        inline_dispatchers=[
+            Twilight(
+                [
+                    UnionMatch(".mors").help("主控制器"),
+                    ArgumentMatch("-cM",optional=True) @ "codeMulti",
+                    ArgumentMatch("-sM",optional=True) @ "splitMulti",
+                    WildcardMatch() @ "text"
+                ]
+            )
+        ],
+    )
+)
+async def ai_handle(
+    app: Ariadne,
+    group: Group,
+    text:MatchResult,
+    codeMulti:MatchResult,
+    splitMulti:MatchResult
+):  
+    if codeMulti.matched:
+        codeMulti = int(codeMulti.result.display)
+    else:
+        codeMulti = 0
+
+    if splitMulti.matched:
+        splitMulti = int(splitMulti.result.display)
+    else:
+        splitMulti = 1
+
+
+    text = text.result.display
+    if not text:
+        await app.send_group_message(
+            target=group,
+            message=MessageChain(
+                "生成错误,转换内容为空"
+            )
+        )
+        return
+
+    if len(text) > 100:
+        await app.send_group_message(
+            target=group,
+            message=MessageChain(
+                "你的文章太长啦，神鳞不想被tx口球XWX"
+            )
+        )
+        return
+
+    try:
+        voice = await genMORSvoice(text,codeMulti,splitMulti)
+        await app.send_group_message(
+                target=group,
+                message=MessageChain(
+                    Voice(data_bytes=voice)
+                )
+            )
+    except Exception:
         await app.send_group_message(
             target=group,
             message=MessageChain(
