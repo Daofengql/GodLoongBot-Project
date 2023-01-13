@@ -148,10 +148,11 @@ async def getBT(app:Ariadne,group:Group,quote,page):
     strfile = p / f"{page}.zip"
     strfile2 = p2 / f"{page}.zip"
     os.makedirs(p, exist_ok=True)
-
+    
     zip_file = zipfile.ZipFile(strfile, 'w', zipfile.ZIP_DEFLATED)
+
     for filename,downloadURL in files:
-        await asyncio.sleep(2)
+        await asyncio.sleep(0.5)
         data = await downloadBT("https://www.btbtt15.com/" + downloadURL)
         zip_file.writestr(filename,data)
     zip_file.close()
