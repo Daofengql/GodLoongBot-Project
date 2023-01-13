@@ -15,6 +15,27 @@ from library.ToThread import run_withaio
 import PIL.Image as PImage
 from io import BytesIO
 
+import json,os
+from pathlib import Path
+import shodan
+import aiohttp
+import PIL.Image as PImage
+
+PATH = Path(__file__).parent
+
+if not os.path.exists(PATH / "shodanConf.json"):
+    js = {
+        "API_KEY":"你的api秘钥"
+        }
+    with open(PATH / "shodanConf.json","w") as f:
+        js = json.dumps(js)
+        f.write(js)
+else:
+    with open(PATH / "shodanConf.json","r") as f:
+        SDapi = shodan.Shodan(json.loads(f.read())["API_KEY"])
+
+
+
 pattern = re.compile(r'[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?')
 
 class tcping(object):
@@ -250,3 +271,125 @@ async def icp(
             mock = OneUIMock(column)
         rendered_bytes = await asyncio.to_thread(mock.render_bytes)
         return MessageChain(Image(data_bytes=rendered_bytes))
+
+
+@cached(ttl=1200)
+async def ShodanSearchIP(
+    ip
+    )->MessageChain:
+    
+    try:
+        info:dict = await asyncio.to_thread(SDapi.host,ips=ip)
+    except Exception as e:
+        return MessageChain(Plain("查询错误，未找到此地址的信息，您有可能搜索了一个内网ip或者环路ip"))
+
+    #基础信息查询
+    column = Column(Banner("IP信息查询  数据源：ShodanAPI"),)
+
+    #图标
+    async with aiohttp.ClientSession() as session:
+        async with session.get("https://pic3.zhimg.com/v2-4f84ebc0f73ffac6b28ec460a2f5c43b_1440w.jpg") as resp:
+            img = PImage.open(
+                BytesIO(
+                    await resp.content.read()
+                )
+            ).convert("RGBA")
+            column.add(img)
+    column.add(Header("基础信息", "显示运营商、地理信息等"))
+    IPInfoBox = GeneralBox()
+    IPInfoBox.add(f"AS:{info['asn']}","AS自治号")
+    IPInfoBox.add(f"位置:{info['country_name']}-{info['city']} ({info['country_code']})","地理位置")
+    IPInfoBox.add(f"ISP:{info.get('isp')}","运营商名")
+    IPInfoBox.add(f"所属组织:{info.get('org')}","所属组织名")
+    IPInfoBox.add(f"经纬:{info.get('longitude')},{info.get('latitude')}","地理坐标位置")
+    IPInfoBox.add(f"OS:{info.get('os')}","疑似运行的操作系统")
+    IPInfoBox.add(f"更新时间:{info.get('last_update')}","最后一次更新时间")
+
+    if info.get('ports'):
+        p = ""
+        for port in info.get('ports'):
+            p += f"[{port}] "
+        IPInfoBox.add(f"端口:{p}","已知开放的端口")
+
+    if info.get('tags'):
+        t = ""
+        for tag in info.get('tags'):
+            t += f"{tag} "
+        IPInfoBox.add(f"行为标签:{t}","推测行为标签数据")
+    column.add(IPInfoBox)
+
+
+    #漏洞信息
+    
+    column2 = Column(Header("漏洞信息", "可能存在的CVE漏洞情况"))
+    vulnBox = GeneralBox()
+    if info.get('vulns'):
+        
+        count = 1
+        for vuln in info.get('vulns'):
+            vulnBox.add(f"{count}. {vuln}","")
+            count += 1
+    else:
+        vulnBox.add(f"暂未发现CVE漏洞","")
+    column2.add(vulnBox)
+
+
+
+
+    
+    #域名信息
+    column2.add(Header("域名信息", "已知包含解析到此ip的域名和此主机绑定的主机名"))
+    DomainInfoBox = GeneralBox()
+    if info.get('domains'):
+        for domain in info.get('domains'):
+            DomainInfoBox.add(f"域名:{domain}","已知解析过此ip")
+    if info.get('hostnames'):
+        for hostname in info.get('hostnames'):
+            DomainInfoBox.add(f"主机:{hostname}","已知此ip对外宣称的主机名")
+    column2.add(DomainInfoBox)
+
+
+    mock = OneUIMock(column,column2)
+
+    #端口信息
+    idata:list[dict] = info.get('data')
+
+    idatas:list[list[dict]] = [idata[i:i + 4] for i in range(0, len(idata), 4)]
+
+    for idata in idatas:
+        column3 = Column(Header("端口信息", "已知端口的监听业务服务情况（有缩减）"))
+        PortInfoBox = GeneralBox()
+        for Iport in idata:
+            PortInfoBox.add(f"{Iport.get('transport')}:{Iport.get('port')} /{Iport.get('product')}",f"更新时间{Iport.get('timestamp')}\n回显数据(前300字符)：\n{Iport.get('data')[:300]}....")
+        column3.add(PortInfoBox)
+        mock.add(column3)
+
+    rendered_bytes = await asyncio.to_thread(mock.render_bytes)
+
+    return MessageChain(Image(data_bytes=rendered_bytes))
+
+@cached(ttl=1200)
+async def ShodanSearchQuery(
+    query
+    )->MessageChain:
+
+    try:
+        info:dict = await asyncio.to_thread(SDapi.search,query=query,limit=20)
+    except Exception as e:
+        return MessageChain(Plain("查询错误，可能是一个错误的搜索语法"))
+
+    mock = OneUIMock()
+    idata:list[dict] = info.get('matches')
+    idatas:list[list[dict]] = [idata[i:i + 4] for i in range(0, len(idata), 4)]
+    for idata in idatas:
+        column = Column(Banner("Shodan查询   数据源：ShodanAPI"), Header("查询返回", "仅显示前几"))
+        sInfoBox = GeneralBox()
+        for i in idata:
+
+            sInfoBox.add(f"{i.get('ip_str')}:{i.get('port')} /{i.get('product')} ({i.get('asn')})",f"回显数据(前300字符)：\n{i.get('data')[:300]}....")
+        column.add(sInfoBox)
+        mock.add(column)
+
+    rendered_bytes = await asyncio.to_thread(mock.render_bytes)
+
+    return MessageChain(Image(data_bytes=rendered_bytes))

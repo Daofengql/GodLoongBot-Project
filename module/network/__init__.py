@@ -13,7 +13,7 @@ from graia.ariadne.message.parser.twilight import (
     RegexMatch,
 )
 
-from .utils import pingip, tcpingip,dnsrecord,whois,aton
+from .utils import pingip, tcpingip,dnsrecord,whois,aton,ShodanSearchIP,ShodanSearchQuery
 
 net = Channel.current()
 
@@ -33,7 +33,8 @@ net.description("网络功能插件")
                         "-tcping",
                         "-dns",
                         "-whois",
-                        "-aton"
+                        "-aton",
+                        "-ShodanIP"
                         ) @ "func",
                     RegexMatch(r"[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?") @ "addr",
                     WildcardMatch() @ "port"
@@ -69,9 +70,12 @@ async def pingmod(
         elif func == "-aton":
             rely = await aton(addr)
 
+        elif func == "-ShodanIP":
+            rely = await ShodanSearchIP(addr)
+
         else:
             rely = "很抱歉，未知的操作"
-    except:
+    except Exception as e:
         rely = "操作异常"
 
     await app.send_group_message(
@@ -81,3 +85,38 @@ async def pingmod(
     )
 
         
+@net.use(ListenerSchema(
+        listening_events=[GroupMessage],
+        inline_dispatchers=[
+            Twilight(
+                [
+                    UnionMatch("net").help('群聊控制'),
+                    UnionMatch(
+                        "-shodan"
+                        ),
+                    WildcardMatch() @ "query"
+                ]
+            )
+        ]
+    )
+)
+async def pingmod(
+    app: Ariadne,
+    message: MessageChain,
+    group: Group,
+    query: MatchResult,
+):
+
+    query = query.result.display
+
+    try:
+        rely = await ShodanSearchQuery(query)
+    except Exception as e:
+        rely = "操作异常"
+
+    await app.send_group_message(
+        target=group,
+        quote=message.get_first(Source),
+        message=rely
+    )
+    
