@@ -34,6 +34,8 @@ aio-mc-rcon = "^3.2.0"
 PySSTV = "^0.5.4"
 bs4 = "^0.0.1"
 webdavclient3 = "^3.14.6"
+pypinyin = "^0.47.1"
+shodan = "^1.28.0"
 
 [tool.poetry.dev-dependencies]
 
