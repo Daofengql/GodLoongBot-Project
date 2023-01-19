@@ -20,8 +20,13 @@ from graia.broadcast.interrupt import Waiter, InterruptControl
 import zipfile,os,datetime
 
 from pathlib import Path
-from library.webdav import uploadToAlist
+from library.webdav import uploadToAlist,options,listDictFromAlist
 from urllib import parse
+
+
+from lxml import etree
+
+
 
 PATH = Path(os.getcwd()) / "cache" / "btget"
 
@@ -143,11 +148,10 @@ async def getBT(app:Ariadne,group:Group,quote,page):
             quote=quote
         )
 
-    p = PATH / str(datetime.datetime.today().year) / str(datetime.datetime.today().month) / str(datetime.datetime.today().day) / str(group.id)
-    p2 = Path(str(datetime.datetime.today().year)) /  str(datetime.datetime.today().month) / str(datetime.datetime.today().day) / str(group.id)
-    strfile = p / f"{page}.zip"
-    strfile2 = p2 / f"{page}.zip"
-    os.makedirs(p, exist_ok=True)
+    upath = Path(str(datetime.datetime.today().year)) /  str(datetime.datetime.today().month) / str(datetime.datetime.today().day) / str(group.id)
+    strfile2 = upath / f"{page}.zip"
+    strfile = PATH / strfile2
+    os.makedirs(PATH / upath , exist_ok=True)
     
     zip_file = zipfile.ZipFile(strfile, 'w', zipfile.ZIP_DEFLATED)
 
@@ -156,11 +160,11 @@ async def getBT(app:Ariadne,group:Group,quote,page):
         data = await downloadBT("https://www.btbtt15.com/" + downloadURL)
         zip_file.writestr(filename,data)
     zip_file.close()
-    
-    stat = await uploadToAlist(strfile2,"/botOutLink/BTdownload/" + strfile)
+
+    stat = await uploadToAlist(f"/BTdownload/{strfile2}",strfile)
     os.remove(strfile)
     if stat:
-        return "https://fileportal.loongapi.com" + parse.quote(f"/d/资料/botOutLink/BTdownload/{strfile2}")
+        return "https://fileportal.loongapi.com" + parse.quote(f"/d{options['webdav_root']}/BTdownload/{strfile2}")
     else:
         return "坏了，系统出错了"
     

@@ -12,6 +12,7 @@ PATH = Path(os.getcwd())
 if not os.path.exists(PATH / "webdavConf.json"):
     js = {
         'webdav_hostname': "",
+        "webdav_root":"",
         'webdav_login': "",
         'webdav_password': "",
         'disable_check': True
@@ -27,6 +28,7 @@ else:
 
 
 async def uploadToAlist(upnane,filepath):
+    print(upnane)
 
     client = Client(options)
     try:
@@ -62,19 +64,31 @@ async def deleteFromAlist(filepath):
     else:
         return True
 
-async def listDictFromAlist(filepath):
+async def listDictFromAlist(filepath = ""):
     client = Client(options)
     try:
-        await run_withaio(client.list,args=(filepath,))
+        if filepath:
+            l = await run_withaio(client.list,args=(filepath,))
+        else:
+            l = await run_withaio(client.list,args=())
     except:
         return False
     else:
-        return True
+        return l
 
 async def moveFromAlist(origin,target):
     client = Client(options)
     try:
         await run_withaio(client.move,args=(origin,target,))
+    except:
+        return False
+    else:
+        return True
+
+async def createDictFromAlist(target):
+    client = Client(options)
+    try:
+        await run_withaio(client.mkdir,args=(target,))
     except:
         return False
     else:
