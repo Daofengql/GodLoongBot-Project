@@ -28,7 +28,6 @@ else:
 
 
 async def uploadToAlist(upnane,filepath):
-    print(upnane)
 
     client = Client(options)
     try:
