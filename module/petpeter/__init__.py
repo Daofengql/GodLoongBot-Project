@@ -25,7 +25,7 @@ BOT = bot()
 LAST_QEQUEST = datetime.datetime.now()
 async def get_simple_data(func,**data):
     session = Ariadne.service.client_session
-    ROOT_URL = "https://v1.loongapi.com/v1/bot/petpeter/"
+    ROOT_URL = "https://v1.loongapi.com/v1/bot/MEMEs/petpeter/"
     url = ROOT_URL + func
     for i in BOT.weijingci:
         for k in data:

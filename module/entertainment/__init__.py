@@ -1,21 +1,27 @@
-from graia.ariadne.model import Group
+import calendar
+import datetime
+from io import BytesIO
+
 from graia.ariadne.app import Ariadne
+from graia.ariadne.event.message import GroupMessage
 from graia.ariadne.message.chain import MessageChain
+from graia.ariadne.message.element import Image, Plain, Source
+from graia.ariadne.message.parser.twilight import (ArgumentMatch, ElementMatch,
+                                                   ElementResult, FullMatch,
+                                                   MatchResult, RegexMatch,
+                                                   RegexResult, Twilight,
+                                                   UnionMatch, WildcardMatch)
+from graia.ariadne.model import Group
 from graia.saya import Channel
 from graia.saya.builtins.broadcast.schema import ListenerSchema
-from graia.ariadne.event.message import GroupMessage
-from graia.ariadne.message.element import Source,Image,Plain
-from graia.ariadne.message.parser.twilight import (
-    Twilight,
-    UnionMatch,
-    MatchResult,
-    WildcardMatch,
-    RegexMatch,
-    ArgumentMatch
-)
+from PIL import Image as PLImg
+from xpinyin import Pinyin
 
-from .utils import searchFromPage,WaitForResp,getBT
+from library.Bot import bot
 
+from .utils import WaitForResp, getBT, searchFromPage
+
+BOT = bot()
 et = Channel.current()
 
 et.name("娱乐插件")
@@ -89,3 +95,368 @@ async def etmod(
             quote=message.get_first(Source)
         )
     return
+
+@et.use(ListenerSchema(
+        listening_events=[GroupMessage],
+        inline_dispatchers=[
+            Twilight(
+                [
+                    UnionMatch(".uegcard",".uegCard","。uegcard","联合政府通行证"),
+                    WildcardMatch() @ "param"
+                ]
+            )
+        ]
+    )
+)
+async def uegmod(
+    app: Ariadne,
+    group: Group,
+    event: GroupMessage,
+    message: MessageChain,
+    param: MatchResult
+):
+    session = Ariadne.service.client_session
+    time = datetime.datetime.today()
+
+    if param.matched and str(param.result.display).strip() == "-f":
+
+        data = {
+            "position" : None,
+            "Firstname" : None,
+            "Secondname" : None,
+            "barcodeContent":str( event.sender.id).rjust(12,"0"),
+            "qrcodeContent":None,
+            "signTime":f"{time.day} {calendar.month_abbr[time.month]} {time.year}",
+            "avatar":None,
+        }
+        await app.send_group_message(
+            target=group,
+            message=MessageChain(
+                Plain(
+                    "请回复您的姓氏，或作为大字号显示的名字，退出请回复exit"
+                )
+            ),
+            quote=message.get_first(Source)
+        )
+
+        choice = await WaitForResp(app,group,event,message)
+        if choice.display == "exit":
+            await app.send_group_message(
+                target=group,
+                message=MessageChain(
+                    Plain(
+                        "已退出生成"
+                    )
+                ),
+                quote=message.get_first(Source)
+            )
+            return
+        data["Firstname"] = choice.display
+
+
+        
+        await app.send_group_message(
+            target=group,
+            message=MessageChain(
+                Plain(
+                    "请回复您的名字，或作为小字号显示的名字以及英文内容，退出请回复exit"
+                )
+            ),
+            quote=message.get_first(Source)
+        )
+        choice = await WaitForResp(app,group,event,message)
+        if choice.display == "exit":
+            await app.send_group_message(
+                target=group,
+                message=MessageChain(
+                    Plain(
+                        "已退出生成"
+                    )
+                ),
+                quote=message.get_first(Source)
+            )
+            return
+        data["Secondname"] = choice.display
+
+
+        await app.send_group_message(
+            target=group,
+            message=MessageChain(
+                Plain(
+                    "请回复您的职位，退出请回复exit"
+                )
+            ),
+            quote=message.get_first(Source)
+        )
+        choice = await WaitForResp(app,group,event,message)
+        if choice.display == "exit":
+            await app.send_group_message(
+                target=group,
+                message=MessageChain(
+                    Plain(
+                        "已退出生成"
+                    )
+                ),
+                quote=message.get_first(Source)
+            )
+            return
+        data["position"] = choice.display
+
+        
+        await app.send_group_message(
+            target=group,
+            message=MessageChain(
+                Plain(
+                    "请回复您需要添加进二维码的内容，退出请回复exit"
+                )
+            ),
+            quote=message.get_first(Source)
+        )
+        choice = await WaitForResp(app,group,event,message)
+        if choice.display == "exit":
+            await app.send_group_message(
+                target=group,
+                message=MessageChain(
+                    Plain(
+                        "已退出生成"
+                    )
+                ),
+                quote=message.get_first(Source)
+            )
+            return
+        data["qrcodeContent"] = choice.display
+
+        
+        await app.send_group_message(
+            target=group,
+            message=MessageChain(
+                Plain(
+                    "请回复您的照片，如果需要使用头像请随意回复文字，退出请回复exit"
+                )
+            ),
+            quote=message.get_first(Source)
+        )
+        choice = await WaitForResp(app,group,event,message)
+        if choice.display == "exit":
+            await app.send_group_message(
+                target=group,
+                message=MessageChain(
+                    Plain(
+                        "已退出生成"
+                    )
+                ),
+                quote=message.get_first(Source)
+            )
+            return
+        img = choice.get(Image)
+        if not img:
+            data["avatar"] = BytesIO(await event.sender.get_avatar())
+        else:
+            data["avatar"] = BytesIO(await img[0].get_bytes())
+
+        print(data)
+
+    else:
+        member = await app.get_member(
+            group=group,
+            member_id=event.sender.id
+        )
+        s = Pinyin().get_pinyin(event.sender.name).split('-')
+        result3 = s[0].capitalize() + ' ' + ''.join(s[1:]).capitalize()
+        
+        data = {
+            "position" : str(member.permission),
+            "Firstname" : event.sender.name,
+            "Secondname" : result3,
+            "barcodeContent":str( event.sender.id).rjust(12,"0"),
+            "qrcodeContent":f"你好 {event.sender.name} 欢迎来到UEG",
+            "signTime":f"{time.day} {calendar.month_abbr[time.month]} {time.year}",
+            "avatar":BytesIO(await event.sender.get_avatar())
+        }
+
+    
+    await app.send_group_message(
+                target=group,
+                message=MessageChain(
+                    "正在为您生成身份信息卡....请耐心等待，若2分钟内无响应，您可以重新触发"
+                )
+            )
+    async with session.post(f"https://v1.loongapi.com/v1/bot/MEMEs/WanderingEarth/UEG",data=data) as resp:
+        if resp.status == 200:
+            await app.send_group_message(
+                target=group,
+                message=MessageChain(
+                    Image(
+                        data_bytes=await resp.read()
+                    )
+                )
+            )
+
+@et.use(ListenerSchema(
+        listening_events=[GroupMessage],
+        inline_dispatchers=[
+            Twilight(
+                [
+                    UnionMatch(".流浪地球倒计时"),
+                    ArgumentMatch("-Title",optional=False) @ "Title",
+                    ArgumentMatch("-Time",optional=False) @ "Time",
+                    ArgumentMatch("-TimeMethod",optional=False) @ "TimeMethod",
+                    ArgumentMatch("-SecondLine",optional=False) @ "SecondLine",
+                    ArgumentMatch("-LastLine",optional=False) @ "LastLine",
+                    ArgumentMatch("-Fontcolor",optional=True) @ "Fontcolor",
+                    ArgumentMatch("-Shadow",optional=True) @ "Shadow",
+                    ArgumentMatch("-ShadowColor",optional=True) @ "ShadowColor",
+                    ArgumentMatch("-ShadowWave",optional=True) @ "ShadowWave",
+                    ArgumentMatch("-BGcolor",optional=True) @ "BGcolor",
+                    ArgumentMatch("-gif",optional=True) @ "gif",
+                    ArgumentMatch("-duration",optional=True) @ "duration",
+
+                ]
+            )
+        ]
+    )
+)
+async def uegmod(
+    app: Ariadne,
+    group: Group,
+    event: GroupMessage,
+    Title:MatchResult,
+    Time:MatchResult,
+    TimeMethod:MatchResult,
+    SecondLine:MatchResult,
+    LastLine:MatchResult,
+    Fontcolor:MatchResult,
+    Shadow:MatchResult,
+    ShadowColor:MatchResult,
+    ShadowWave:MatchResult,
+    BGcolor: MatchResult,
+    gif:MatchResult,
+    duration:MatchResult,
+
+):
+    session = Ariadne.service.client_session
+    
+    data = {
+        "Title" : Title.result.display,
+        "Time" : int(Time.result.display),
+        "TimeP" : TimeMethod.result.display,
+        "SecondLine":str(SecondLine.result.display).replace("_"," "),
+        "LastLine":str(LastLine.result.display).replace("_"," ")
+    }
+
+    if Fontcolor.matched:
+        data["Fontcolor"] = Fontcolor.result.display
+
+    if Shadow.matched:
+        data["Shadow"] = bool(Shadow.result.display)
+        
+    if ShadowColor.matched:
+        data["ShadowColor"] = ShadowColor.result.display
+
+    if gif.matched:
+        data["isgif"] = gif.result.display
+
+    if BGcolor.matched:
+        data["BGcolor"] = BGcolor.result.display
+
+    if duration.matched:
+        data["GifDuration"] = duration.result.display
+    
+    if ShadowWave.matched:
+        if str(ShadowWave.result.display).isdigit():
+            data["ShadowWave"] = int(ShadowWave.result.display)
+
+
+    for i in BOT.weijingci:
+        if i in str(data):
+            await app.send_group_message(
+                target=group,
+                message=MessageChain(
+                    "内容存在违禁词，请遵纪守法谢谢"
+                )
+            )
+            return
+
+    await app.send_group_message(
+                target=group,
+                message=MessageChain(
+                    "正在为您生成梗图....请耐心等待，若2分钟内无响应，您可以重新触发"
+                )
+            )
+            
+    async with session.post("https://v1.loongapi.com/v1/bot/MEMEs/WanderingEarth/logo",data=data) as resp:
+        if resp.status == 200:
+
+            await app.send_group_message(
+                target=group,
+                message=MessageChain(
+                    Image(
+                        data_bytes = await resp.read()
+                    )
+                )
+            )
+        else:
+            await app.send_group_message(
+                target=group,
+                message=MessageChain(
+                    "接口请求错误"
+                )
+            )
+
+@et.use(ListenerSchema(
+        listening_events=[GroupMessage],
+        inline_dispatchers=[
+            Twilight(
+                [
+                    UnionMatch(".幻影坦克"),
+                    FullMatch("彩色", optional=True) @ "colorful",
+                    RegexMatch(r"[\s]?", optional=True),
+                    ElementMatch(Image) @ "img1",
+                    RegexMatch(r"[\s]?", optional=True),
+                    ElementMatch(Image) @ "img2",
+
+                ]
+            )
+        ]
+    )
+)
+
+async def ettank(
+    app: Ariadne,
+    message: MessageChain,
+    group: Group,
+    event: GroupMessage,
+    source: Source,
+    colorful: RegexResult,
+    img1: ElementResult,
+    img2: ElementResult,
+): 
+    img1: Image = img1.result
+    img2: Image = img2.result
+    display_img = BytesIO(await img1.get_bytes())
+    hide_img = BytesIO(await img2.get_bytes())
+    await app.send_group_message(
+            target=group,
+            message=MessageChain(
+                "正在制作"
+            ),
+            quote=source
+        )
+    data = {
+        "bimg":hide_img,
+        "wimg":display_img
+    }
+    if colorful.matched:
+        data["isColor"] = "true"
+
+    session = Ariadne.service.client_session
+    async with session.post("https://v1.loongapi.com/v1/bot/MEMEs/PhaTank",data=data) as resp:
+        if resp.status  == 200:
+            msg = Image(
+                data_bytes=  await resp.read()
+            )
+        await app.send_group_message(
+                target=group,
+                message=msg,
+                quote=source
+            )

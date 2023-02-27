@@ -87,9 +87,9 @@ async def moveFromAlist(origin,target):
 async def createDictFromAlist(target):
     client = Client(options)
     try:
-        await run_withaio(client.mkdir,args=(target,))
+        stat = await run_withaio(client.mkdir,args=(target,))
     except:
         return False
     else:
-        return True
+        return stat
 

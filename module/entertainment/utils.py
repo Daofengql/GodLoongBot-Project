@@ -1,32 +1,24 @@
-import aiohttp
 import asyncio
-import aiocache
-from bs4 import BeautifulSoup
-from library.image.oneui_mock.elements import (
-    Banner,
-    Header,
-    GeneralBox,
-    Column,
-    OneUIMock,
-)
-from library.ToThread import run_withaio
-
-from graia.ariadne.event.message import GroupMessage
-from graia.ariadne.model import Group
-from graia.ariadne.app import Ariadne
-from graia.ariadne.message.chain import MessageChain
-from graia.broadcast.interrupt import Waiter, InterruptControl
-
-import zipfile,os,datetime
-
+import datetime
+import os
+import zipfile
 from pathlib import Path
-from library.webdav import uploadToAlist,options,listDictFromAlist
 from urllib import parse
 
-
+import aiocache
+import aiohttp
+from bs4 import BeautifulSoup
+from graia.ariadne.app import Ariadne
+from graia.ariadne.event.message import GroupMessage
+from graia.ariadne.message.chain import MessageChain
+from graia.ariadne.model import Group
+from graia.broadcast.interrupt import InterruptControl, Waiter
 from lxml import etree
 
-
+from library.image.oneui_mock.elements import (Banner, Column, GeneralBox,
+                                               Header, OneUIMock)
+from library.ToThread import run_withaio
+from library.webdav import options, uploadToAlist
 
 PATH = Path(os.getcwd()) / "cache" / "btget"
 
@@ -125,17 +117,16 @@ async def WaitForResp(app:Ariadne,group:Group,event:GroupMessage,message:Message
     @Waiter.create_using_function(listening_events=[GroupMessage])
     async def waiter(waiter_message: MessageChain, g: Group, e: GroupMessage):
         if e.sender.id == event.sender.id and g.id == group.id:
-            saying = waiter_message.display
-            return saying
+            return waiter_message
 
     try:
-        dat = await asyncio.wait_for(
-            InterruptControl(app.broadcast).wait(waiter), 600
+        dat:MessageChain = await asyncio.wait_for(
+            InterruptControl(app.broadcast).wait(waiter), 800
         )
         return dat
     except asyncio.exceptions.TimeoutError:
         await app.send_message(group, MessageChain("超时拉~"))
-        return ""
+        return MessageChain()
 
 
 

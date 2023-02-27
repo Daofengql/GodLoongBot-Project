@@ -1,16 +1,14 @@
 from graia.ariadne.app import Ariadne
-from graia.ariadne.connection.config import (
-    HttpClientConfig,
-    WebsocketClientConfig,
-    config as ariadne_config,
-)
+from graia.ariadne.connection.config import (HttpClientConfig,
+                                             WebsocketClientConfig)
+from graia.ariadne.connection.config import config as ariadne_config
 from graia.saya import Saya
 from graia.saya.builtins.broadcast import BroadcastBehaviour
 from graia.scheduler import GraiaScheduler
 from graia.scheduler.saya.behaviour import GraiaSchedulerBehaviour
 
-from library.context import scheduler
 from library.config import config
+from library.context import scheduler
 
 ariadne = Ariadne(
     connection=ariadne_config(
@@ -32,3 +30,5 @@ if __name__ == """__main__""":
     
     modules.require_modules(saya, log_exception=False)
     ariadne.launch_blocking()
+
+    
