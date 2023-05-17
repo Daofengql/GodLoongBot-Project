@@ -6,5 +6,6 @@ log/
 .vscode/
 **/mc
 cache/
-**webdavConf.json
+**b2access.json
 **shodanConf.json
+**mqttserver.json

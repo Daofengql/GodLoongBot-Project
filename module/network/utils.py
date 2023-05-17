@@ -1,25 +1,27 @@
-import time
-from socket import *
-from graia.ariadne.app import Ariadne
-from ping3 import ping
-from graia.ariadne.message.chain import MessageChain
-from graia.ariadne.message.element import At, Image, Source, Plain
-from library.image.oneui_mock.elements import Column,GeneralBox,Banner,Header,OneUIMock
-
-from aiocache import cached
 import asyncio
 import ipaddress
+import json
+import os
 import re
-from library.loongapi.models import Model_ret
-from library.ToThread import run_withaio
-import PIL.Image as PImage
+import time
 from io import BytesIO
-
-import json,os
 from pathlib import Path
-import shodan
+from socket import *
+
 import aiohttp
 import PIL.Image as PImage
+import shodan
+from aiocache import cached
+from aiohttp import BasicAuth
+from graia.ariadne.app import Ariadne
+from graia.ariadne.message.chain import MessageChain
+from graia.ariadne.message.element import At, Image, Plain, Source
+from ping3 import ping
+
+from library.image.oneui_mock.elements import (Banner, Column, GeneralBox,
+                                               Header, OneUIMock)
+from library.loongapi.models import Model_ret
+from library.ToThread import run_withaio
 
 PATH = Path(__file__).parent
 
@@ -393,3 +395,86 @@ async def ShodanSearchQuery(
     rendered_bytes = await asyncio.to_thread(mock.render_bytes)
 
     return MessageChain(Image(data_bytes=rendered_bytes))
+
+P = Path(__file__).parent / "mqttserver.json"
+
+if not os.path.exists(P):
+    js = {
+    "user": "",
+    "pwd": ""
+}
+    with open(P,"w") as f:
+        js = json.dumps(js)
+        f.write(js)
+else:
+    with open(P,"r") as f:
+        js = json.loads(f.read())
+        mqttpwd = js["pwd"]
+        mqttuser = js["user"]
+        del js
+
+
+async def getMQTTstatus():
+    auth = BasicAuth(login=mqttuser, password=mqttpwd)
+    async with aiohttp.ClientSession(auth=auth) as session:
+        async with session.get("https://emqtt.loongapi.com/api/v2/monitoring/metrics",auth = auth) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                data:dict = data["result"][0]
+
+        mock = OneUIMock()
+
+        data = data[next(iter(data))]
+    
+        
+        column1 = Column(Banner("引擎信息"), Header("MQTT报文", ""))
+        column1.add(Header("中国河南郑州-1", "节点名称"))
+
+        InfoBox = GeneralBox()
+        InfoBox.add("已接收",data["packets/received"])
+        InfoBox.add("已发送",data["packets/sent"])
+        InfoBox.add("确认连接请求",data["packets/connack"])
+        InfoBox.add("总订阅数",data["packets/subscribe"])
+        InfoBox.add("总心跳包",data["packets/pingreq"])
+        InfoBox.add("总连接数",data["packets/connect"])
+        InfoBox.add("总取消订阅数",data["packets/unsuback"])
+        InfoBox.add("发送字节数",str(data["bytes/sent"]))
+        InfoBox.add("接收字节数",str(data["bytes/received"]))
+        column1.add(InfoBox)
+        mock.add(column1)
+
+        async with session.get("https://emqtt.loongapi.com/api/v2/monitoring/nodes",auth = auth) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                data:dict = data["result"][0]
+
+
+        async with session.get("https://objectstorage.global.loongapi.com/loongapiSources/picbed/penglong/2023/04/01/202304011056209413.webp") as resp:
+            img = PImage.open(
+                BytesIO(
+                    await resp.content.read()
+                )
+            ).convert("RGBA")
+            
+
+        column4 = Column(Header("系统运行状态", ""))
+        InfoBox4 = GeneralBox()
+        InfoBox4.add("内存(used/total)",str(data["memory_used"])+"/"+str(data["memory_total"]))
+        InfoBox4.add("Erlang进程(used/avaliable)",str(data["process_used"])+"/"+str(data["process_available"]))
+        InfoBox4.add("最大文件打开数",str(data["max_fds"]))
+        InfoBox4.add("已链接的客户端数",str(data["clients"]))
+        InfoBox4.add("资源消耗(1M/5M/15M)",str(data["load1"])+"/"+str(data["load5"])+"/"+str(data["load15"]))
+        InfoBox4.add("Erlang/OTP 版本",str(data["otp_release"]))
+        column4.add(InfoBox4)
+        column4.add(img)
+        mock.add(column4)
+
+    rendered_bytes = await asyncio.to_thread(mock.render_bytes)
+
+    return MessageChain(Image(data_bytes=rendered_bytes))
+
+
+
+
+
+

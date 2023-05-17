@@ -15,10 +15,10 @@ from graia.ariadne.model import Group
 from graia.broadcast.interrupt import InterruptControl, Waiter
 from lxml import etree
 
+from library.b2 import bucket, guess_content_type
 from library.image.oneui_mock.elements import (Banner, Column, GeneralBox,
                                                Header, OneUIMock)
 from library.ToThread import run_withaio
-from library.webdav import options, uploadToAlist
 
 PATH = Path(os.getcwd()) / "cache" / "btget"
 
@@ -152,10 +152,8 @@ async def getBT(app:Ariadne,group:Group,quote,page):
         zip_file.writestr(filename,data)
     zip_file.close()
 
-    stat = await uploadToAlist(f"/BTdownload/{strfile2}",strfile)
+    await asyncio.to_thread(bucket.upload_local_file,strfile,str("temp/bt/"/strfile2))
+
     os.remove(strfile)
-    if stat:
-        return "https://fileportal.loongapi.com" + parse.quote(f"/d{options['webdav_root']}/BTdownload/{strfile2}")
-    else:
-        return "坏了，系统出错了"
+    return "https://objectstorage.global.loongapi.com/GodLoongBot" + parse.quote(f"/temp/bt/{strfile2}")
     

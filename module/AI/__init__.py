@@ -294,13 +294,13 @@ async def speak_handle(
 
 
 BGMS = [
-    "https://oss1.loongapi.com/media/bot/aitts/Time_Back.wav",
-    "https://oss1.loongapi.com/media/bot/aitts/The_Hotest_Music.mp3",
-    "https://oss1.loongapi.com/media/bot/aitts/Trip.wav",
-    "https://oss1.loongapi.com/media/bot/aitts/pddHHZL.wav",
-    "https://oss1.loongapi.com/media/bot/aitts/My_Soul.wav",
-    "https://oss1.loongapi.com/media/bot/aitts/The_Right_Path.wav",
-    "https://oss1.loongapi.com/media/bot/aitts/Paris.wav"
+    "https://objectstorage.global.loongapi.com/loongapiSources/media/bot/aitts/Time_Back.wav",
+    "https://objectstorage.global.loongapi.com/loongapiSources/media/bot/aitts/The_Hotest_Music.mp3",
+    "https://objectstorage.global.loongapi.com/loongapiSources/media/bot/aitts/Trip.wav",
+    "https://objectstorage.global.loongapi.com/loongapiSources/media/bot/aitts/pddHHZL.wav",
+    "https://objectstorage.global.loongapi.com/loongapiSources/media/bot/aitts/My_Soul.wav",
+    "https://objectstorage.global.loongapi.com/loongapiSources/media/bot/aitts/The_Right_Path.wav",
+    "https://objectstorage.global.loongapi.com/loongapiSources/media/bot/aitts/Paris.wav"
 ]
 
 @ai.use(

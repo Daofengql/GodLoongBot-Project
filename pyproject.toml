@@ -38,6 +38,7 @@ pypinyin = "^0.47.1"
 shodan = "^1.28.0"
 lxml = "^4.9.2"
 xpinyin = "^0.7.6"
+b2sdk = "^1.21.0"
 
 [tool.poetry.dev-dependencies]
 

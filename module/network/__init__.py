@@ -1,19 +1,18 @@
-from graia.ariadne.model import Group
+
+from aiohttp import BasicAuth
 from graia.ariadne.app import Ariadne
+from graia.ariadne.event.message import GroupMessage
 from graia.ariadne.message.chain import MessageChain
+from graia.ariadne.message.element import Image, Source
+from graia.ariadne.message.parser.twilight import (MatchResult, RegexMatch,
+                                                   Twilight, UnionMatch,
+                                                   WildcardMatch)
+from graia.ariadne.model import Group
 from graia.saya import Channel
 from graia.saya.builtins.broadcast.schema import ListenerSchema
-from graia.ariadne.event.message import GroupMessage
-from graia.ariadne.message.element import Source
-from graia.ariadne.message.parser.twilight import (
-    Twilight,
-    UnionMatch,
-    MatchResult,
-    WildcardMatch,
-    RegexMatch,
-)
 
-from .utils import pingip, tcpingip,dnsrecord,whois,aton,ShodanSearchIP,ShodanSearchQuery
+from .utils import (ShodanSearchIP, ShodanSearchQuery, aton, dnsrecord,
+                    getMQTTstatus, pingip, tcpingip, whois)
 
 net = Channel.current()
 
@@ -120,3 +119,79 @@ async def pingmod(
         message=rely
     )
     
+"""
+@net.use(ListenerSchema(
+        listening_events=[GroupMessage],
+        inline_dispatchers=[
+            Twilight(
+                [
+                    UnionMatch("net").help('群聊控制'),
+                    UnionMatch(
+                        "-网站截图"
+                        ),
+                    WildcardMatch() @ "query"
+                ]
+            )
+        ]
+    )
+)
+async def pwmod(
+    app: Ariadne,
+    message: MessageChain,
+    group: Group,
+    query: MatchResult,
+    source: Source,
+):
+
+    query = query.result.display
+
+    data = {
+        "url":query,
+        "format":"jpeg",
+        "screenshot_quality":50
+    }
+    await app.send_group_message(
+                target=group,
+                message="正在对网站进行截图",
+                quote=source
+            )
+    session = Ariadne.service.client_session
+    async with session.post("https://v1.loongapi.com/v1/tool/playwright/firefox",data=data) as resp:
+        if resp.status  == 200:
+            msg = Image(
+                data_bytes=  await resp.read()
+            )
+        await app.send_group_message(
+                target=group,
+                message=msg,
+                quote=source
+            )"""
+
+
+
+
+
+
+@net.use(ListenerSchema(
+        listening_events=[GroupMessage],
+        inline_dispatchers=[
+            Twilight(
+                [
+                    UnionMatch(".mqtt-stat",".mqtt-Status",".mqtt_status",".mqtt status").help('群聊控制')
+                ]
+            )
+        ]
+    )
+)
+async def mqttstat(
+    app: Ariadne,
+    message: MessageChain,
+    group: Group,
+    source: Source,
+):  
+    data = await getMQTTstatus()
+    await app.send_group_message(
+        target=group,
+        quote=source,
+        message=data
+    )

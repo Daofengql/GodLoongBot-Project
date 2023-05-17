@@ -65,7 +65,7 @@ class TextUtil:
         will have significant longer render time on large text
         :return: image
         """
-
+        text = str(text)
         if not accurate:
             return cls.render_text_non_accurate(text, color, font, width)
 
