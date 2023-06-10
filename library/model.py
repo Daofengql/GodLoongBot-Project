@@ -354,7 +354,8 @@ class Module(BaseModel):
     override_switch: None | bool = None
 
     @validator("category", pre=True)
-    def category_validator(cls, category: str):
+    def category_validator(cls, category):
+        category = str(category)
         if category.startswith("uti"):
             category = "utility"
         elif category.startswith("ent"):

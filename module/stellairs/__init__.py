@@ -58,9 +58,10 @@ async def stellairs_handle2(
     app: Ariadne,
     group: Group,
     event: GroupMessage,
-    message: MessageChain
+    message: MessageChain,
+    source:Source,
 ): 
-    asyncio.create_task(stellairs_handle(app,group,event,message,"签到","签到"))
+    asyncio.create_task(stellairs_handle(app,group,event,message,source,"签到","签到"))
 
 
 @stellairs.use(
@@ -91,6 +92,7 @@ async def stellairs_handle(
     group: Group,
     event: GroupMessage,
     message: MessageChain,
+    source:Source,
     param: MatchResult,
     func: MatchResult,
 ):
@@ -144,7 +146,7 @@ async def stellairs_handle(
         app.send_group_message(
             group, 
             ret,
-            quote=message.get_first(Source)
+            quote=source
         ),
             name=uuid.uuid4()
             )

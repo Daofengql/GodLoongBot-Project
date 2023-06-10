@@ -50,6 +50,7 @@ async def etmod(
     event: GroupMessage,
     func: MatchResult,
     target: MatchResult,
+    source:Source,
 ):
     if func.matched:
         func = func.result.display
@@ -69,7 +70,7 @@ async def etmod(
             message=MessageChain(
                 Image(data_bytes=pic)
             ),
-            quote=message.get_first(Source)
+            quote=source
         )
         choice = await WaitForResp(app,group,event,message)
         choice  = choice.display
@@ -79,7 +80,7 @@ async def etmod(
             await app.send_group_message(
                 target=group,
                 message="回复好像不规范哦",
-                quote=message.get_first(Source)
+                quote=source
             )
             return
 
@@ -87,7 +88,7 @@ async def etmod(
             await app.send_group_message(
                 target=group,
                 message="回复好像不规范哦",
-                quote=message.get_first(Source)
+                quote=source
             )
             return
         
@@ -97,14 +98,14 @@ async def etmod(
         await app.send_group_message(
             target=group,
             message="功能异常，参数不完整，请检查参数",
-            quote=message.get_first(Source)
+            quote=source
         )
         return
 
     await app.send_group_message(
             target=group,
             message=ret,
-            quote=message.get_first(Source)
+            quote=source
         )
     return
 
@@ -125,7 +126,8 @@ async def uegmod(
     group: Group,
     event: GroupMessage,
     message: MessageChain,
-    param: MatchResult
+    param: MatchResult,
+    source:Source,
 ):
     session = Ariadne.service.client_session
     time = datetime.datetime.today()
@@ -148,7 +150,7 @@ async def uegmod(
                     "请回复您的姓氏，或作为大字号显示的名字，退出请回复exit"
                 )
             ),
-            quote=message.get_first(Source)
+            quote=source
         )
 
         choice = await WaitForResp(app,group,event,message)
@@ -160,7 +162,7 @@ async def uegmod(
                         "已退出生成"
                     )
                 ),
-                quote=message.get_first(Source)
+                quote=source
             )
             return
         data["Firstname"] = choice.display
@@ -174,7 +176,7 @@ async def uegmod(
                     "请回复您的名字，或作为小字号显示的名字以及英文内容，退出请回复exit"
                 )
             ),
-            quote=message.get_first(Source)
+            quote=source
         )
         choice = await WaitForResp(app,group,event,message)
         if choice.display == "exit":
@@ -185,7 +187,7 @@ async def uegmod(
                         "已退出生成"
                     )
                 ),
-                quote=message.get_first(Source)
+                quote=source
             )
             return
         data["Secondname"] = choice.display
@@ -198,7 +200,7 @@ async def uegmod(
                     "请回复您的职位，退出请回复exit"
                 )
             ),
-            quote=message.get_first(Source)
+            quote=source
         )
         choice = await WaitForResp(app,group,event,message)
         if choice.display == "exit":
@@ -209,7 +211,7 @@ async def uegmod(
                         "已退出生成"
                     )
                 ),
-                quote=message.get_first(Source)
+                quote=source
             )
             return
         data["position"] = choice.display
@@ -222,7 +224,7 @@ async def uegmod(
                     "请回复您需要添加进二维码的内容，退出请回复exit"
                 )
             ),
-            quote=message.get_first(Source)
+            quote=source
         )
         choice = await WaitForResp(app,group,event,message)
         if choice.display == "exit":
@@ -233,7 +235,7 @@ async def uegmod(
                         "已退出生成"
                     )
                 ),
-                quote=message.get_first(Source)
+                quote=source
             )
             return
         data["qrcodeContent"] = choice.display
@@ -246,7 +248,7 @@ async def uegmod(
                     "请回复您的照片，如果需要使用头像请随意回复文字，退出请回复exit"
                 )
             ),
-            quote=message.get_first(Source)
+            quote=source
         )
         choice = await WaitForResp(app,group,event,message)
         if choice.display == "exit":
@@ -257,7 +259,7 @@ async def uegmod(
                         "已退出生成"
                     )
                 ),
-                quote=message.get_first(Source)
+                quote=source
             )
             return
         img = choice.get(Image)
@@ -344,6 +346,7 @@ async def uegmod(
     BGcolor: MatchResult,
     gif:MatchResult,
     duration:MatchResult,
+    source:Source
 
 ):
     session = Ariadne.service.client_session

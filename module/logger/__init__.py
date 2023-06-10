@@ -33,9 +33,10 @@ async def dumping(messagechain:MessageChain):
 async def sign(
     message: MessageChain,
     event:GroupMessage,
+    source:Source,
     group: Group):
     
-    msgid = event.message_chain.get_first(Source).id
+    msgid = source.id
     dbsession = await db.get_db_session()
     msg = await dumping(message)
     

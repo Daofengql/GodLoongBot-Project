@@ -16,5 +16,11 @@
     },
     "module.alertSystem": {
         "438991075": true
+    },
+    "module.openai": {
+        "438991075": true,
+        "573479442": false,
+        "970600703": true,
+        "424630562": true
     }
 }

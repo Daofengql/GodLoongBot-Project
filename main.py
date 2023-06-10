@@ -12,6 +12,7 @@ from library.context import scheduler
 
 ariadne = Ariadne(
     connection=ariadne_config(
+        
         config.account,
         config.verify_key,
         HttpClientConfig(host=config.host),

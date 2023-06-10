@@ -1,24 +1,72 @@
-from graia.ariadne.app import Ariadne
-from graia.ariadne.message.parser.twilight import (
-    Twilight,
-    UnionMatch,
-    MatchResult,
-    WildcardMatch,
-    ArgumentMatch
-)
-from graia.saya import Channel
-from graia.ariadne.event.message import GroupMessage
-from graia.ariadne.message.chain import MessageChain
-from graia.saya.builtins.broadcast import ListenerSchema
-from library.image.oneui_mock.elements import *
-from graia.ariadne.message.element import Image,Plain, Source, Quote, Voice
-from graia.ariadne.model import Group
-from graiax import silkcoder
-from graia.broadcast.interrupt import Waiter, InterruptControl
-from graia.ariadne.event.mirai import GroupRecallEvent
-
-from library.ComputerVisual import ComputerVisual,ApiConfig,Speech,Translate
 import asyncio
+from io import BytesIO
+
+from graia.ariadne.app import Ariadne
+from graia.ariadne.event.message import GroupMessage
+from graia.ariadne.event.mirai import GroupRecallEvent
+from graia.ariadne.message.chain import MessageChain
+from graia.ariadne.message.element import Image, Plain, Quote, Source, Voice
+from graia.ariadne.message.parser.twilight import (ArgumentMatch, MatchResult,
+                                                   Twilight, UnionMatch,
+                                                   WildcardMatch)
+from graia.ariadne.model import Group
+from graia.broadcast.interrupt import InterruptControl, Waiter
+from graia.saya import Channel
+from graia.saya.builtins.broadcast import ListenerSchema
+from graiax import silkcoder
+
+
+
+from library.ComputerVisual import ApiConfig, ComputerVisual, Speech, Translate
+from library.image.oneui_mock.elements import *
+
+from pydub import AudioSegment
+from pydub.effects import high_pass_filter,normalize
+import copy
+import io
+
+
+#机械音效果控制器
+def add_mechanical_effect(input_audio_bytesio):
+    # 从BytesIO对象中读取WAV音频数据
+    input_audio_bytesio.seek(0)
+    audio = AudioSegment.from_file(input_audio_bytesio, format='wav')
+
+    # 添加机械音效（低通滤波器）
+    modified_audio = high_pass_filter(audio, cutoff=1500)
+
+    amplified_audio = normalize(modified_audio)
+
+    #进行深度复制
+    mix_audio1 = copy.deepcopy(amplified_audio)
+    mix_audio2 = copy.deepcopy(amplified_audio)
+    
+    #设置漂移延迟
+    time_offset_ms = 3
+
+    #将音量减半
+    mix_audio1 = mix_audio1 - 6  # 以分贝为单位进行音量调整
+    mix_audio2 = mix_audio2 - 6
+
+    # 计算时间偏移的帧数
+    time_offset_frames = int(time_offset_ms * mix_audio1.frame_rate / 1000)
+
+    # 将第二段音频向后偏移指定的帧数
+    mix_audio2 = mix_audio2.overlay(mix_audio2, position=time_offset_frames)
+
+    # 将两段音频叠加在一起
+    mixed_audio = mix_audio1.overlay(mix_audio2)
+
+    # 保存叠加后的音频到BytesIO对象
+    output_audio = io.BytesIO()
+    mixed_audio.export(output_audio, format='wav')
+
+    # 将BytesIO对象中的音频数据读取为bytes
+    output_audio_bytes = output_audio.getvalue()
+
+    return output_audio_bytes
+
+
 
 ai = Channel.current()
 
@@ -54,7 +102,8 @@ async def ai_handle(
     group: Group,
     event: GroupMessage,
     message: MessageChain,
-    func: MatchResult
+    func: MatchResult,
+    source: Source
 ):
     func = func.result.display
     
@@ -64,7 +113,7 @@ async def ai_handle(
             message=MessageChain(
                 Plain("调用失败，您必须指定回复一条包含图像的消息")
             ),
-            quote=message.get_first(Source)
+            quote=source
 
         )
         return
@@ -77,7 +126,7 @@ async def ai_handle(
             message=MessageChain(
                 Plain("啊哦，找不到你回复的消息了")
             ),
-            quote=message.get_first(Source)
+            quote=source
 
         )
         return
@@ -87,7 +136,7 @@ async def ai_handle(
             message=MessageChain(
                 Plain("调用失败，您必须指定回复一条包含图像的消息")
             ),
-            quote=message.get_first(Source)
+            quote=source
 
         )
         return
@@ -98,7 +147,7 @@ async def ai_handle(
             message=MessageChain(
                 Plain("调用失败，图像只能为一张")
             ),
-            quote=message.get_first(Source)
+            quote=source
 
         )
         return
@@ -122,9 +171,9 @@ async def ai_handle(
     elif func in ("打个标签","-tags"):
 
         AZresult = await azCV.TagImage(ImageURL=image.url)
-        tmp = ""
-        for tag in AZresult.tags:
-            tmp = tmp + tag.name + ", "
+
+        tmp = ", ".join([tag.name for tag in AZresult.tags])
+
         mes = MessageChain(
             Plain("神麟分析了您的图片\n"),
             Plain(f"神麟为您给出了如下，关于此图在神麟眼中可能的标签：\n"),
@@ -140,7 +189,7 @@ async def ai_handle(
     await app.send_group_message(
             target=group,
             message=mes,
-            quote=message.get_first(Source)
+            quote=source
 
         )
     return
@@ -172,7 +221,8 @@ async def speak_handle(
     style: MatchResult,
     lang: MatchResult,
     speed: MatchResult,
-    pitch: MatchResult
+    pitch: MatchResult,
+    source: Source
 ):
     param = param.result.display
     if style.matched:
@@ -232,7 +282,7 @@ async def speak_handle(
             return
 
     else:
-        speed = -10
+        speed = -15
 
 
     if pitch.matched:
@@ -249,7 +299,7 @@ async def speak_handle(
             return
 
     else:
-        pitch = -12 
+        pitch = -7 
 
     if not param:
         if not message.has(Quote):
@@ -258,7 +308,7 @@ async def speak_handle(
                 message=MessageChain(
                     Plain("调用失败，您必须指定回复一条包含文字的消息，或携带需要转换内容")
                 ),
-                quote=message.get_first(Source)
+                quote=source
 
             )
             return
@@ -272,7 +322,7 @@ async def speak_handle(
                 message=MessageChain(
                     Plain("调用失败，您必须指定回复一条包含文字的消息，或携带需要转换内容")
                 ),
-                quote=message.get_first(Source)
+                quote=source
 
             )
             return
@@ -284,7 +334,9 @@ async def speak_handle(
         param = param[0:200]  + "。<break time='100ms' />哎呀太长了，神麟罢工了"
 
     getAPIdata = await speech.genAudioVoice(voice_name=lang,context=param,style=style,speed=speed,pitch=pitch)
-    audio_bytes = await silkcoder.async_encode(getAPIdata, ios_adaptive=True)
+    APIdata=BytesIO(getAPIdata)
+    effect = add_mechanical_effect(APIdata)
+    audio_bytes = await silkcoder.async_encode(effect, ios_adaptive=True)
     await app.send_group_message(
         target=group,
         message=MessageChain(
@@ -322,7 +374,8 @@ async def VideoYingxiaohao_handle(
     group: Group,
     message: MessageChain,
     param: MatchResult,
-    bgm: MatchResult
+    bgm: MatchResult,
+    source: Source
 ):
     param = param.result.display
     style = "cheerful"
@@ -339,7 +392,7 @@ async def VideoYingxiaohao_handle(
                 message=MessageChain(
                     Plain("调用失败，您必须指定回复一条包含文字的消息，或携带需要转换内容")
                 ),
-                quote=message.get_first(Source)
+                quote=source
 
             )
             return
@@ -353,7 +406,7 @@ async def VideoYingxiaohao_handle(
                 message=MessageChain(
                     Plain("调用失败，您必须指定回复一条包含文字的消息，或携带需要转换内容")
                 ),
-                quote=message.get_first(Source)
+                quote=source
 
             )
             return
@@ -409,7 +462,8 @@ async def translate_handle(
     message: MessageChain,
     origin: MatchResult,
     target: MatchResult,
-    param: MatchResult
+    param: MatchResult,
+    source: Source
     
 ):
     param = param.result.display
@@ -421,7 +475,7 @@ async def translate_handle(
                 message=MessageChain(
                     Plain("调用失败，您必须指定回复一条包含文字的消息，或携带需要转换内容")
                 ),
-                quote=message.get_first(Source)
+                quote=source
 
             )
             return
@@ -435,7 +489,7 @@ async def translate_handle(
                 message=MessageChain(
                     Plain("调用失败，您必须指定回复一条包含文字的消息，或携带需要转换内容")
                 ),
-                quote=message.get_first(Source)
+                quote=source
 
             )
             return
@@ -459,7 +513,7 @@ async def translate_handle(
                     message=MessageChain(
                         Plain("调用失败，您的目标语言和源语言不合法")
                     ),
-                    quote=message.get_first(Source)
+                    quote=source
 
                 )
             return
@@ -473,6 +527,6 @@ async def translate_handle(
                 message=MessageChain(
                     Plain(ret)
                 ),
-                quote=message.get_first(Source)
+                quote=source
 
     )

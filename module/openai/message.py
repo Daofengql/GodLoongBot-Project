@@ -1,0 +1,275 @@
+import contextlib
+
+from creart import it
+from graia.ariadne import Ariadne
+from graia.ariadne.event.message import (
+    ActiveFriendMessage,
+    ActiveGroupMessage,
+    FriendMessage,
+    GroupMessage,
+    MessageEvent,
+)
+from graia.ariadne.exception import AccountMuted, RemoteException, UnknownTarget
+from graia.ariadne.message.chain import MessageChain
+from graia.ariadne.message.element import Source
+from graia.ariadne.model import Friend, Group
+from loguru import logger
+
+from library.config import config
+from graia.ariadne.message import Source
+from graia.ariadne.model import Friend, Group, Member
+from graia.ariadne.model import Friend, Group
+from graia.broadcast import BaseDispatcher, Dispatchable
+
+from module.openai.api.misc import inflate
+
+from library.publicGroup import PublicGroup
+
+
+
+
+class SkipRequiring(Exception):
+    """跳过导入"""
+
+
+class RequirementResolveFailed(ModuleNotFoundError):
+    """依赖解析失败"""
+
+    def __init__(self, *modules):
+        self.modules = inflate(modules)
+
+
+class MessageEmpty(Exception):
+    """消息为空"""
+
+
+class FrequencyLimitHit(Exception):
+    """频率限制命中"""
+
+
+class FrequencyLimitUserHit(FrequencyLimitHit):
+    """频率限制用户命中"""
+
+    def __init__(self, user: int, weight: int):
+        self.user = user
+        self.weight = weight
+
+    def __str__(self):
+        return f"用户 {self.user} 已达到频率限制 {self.weight}"
+
+
+class FrequencyLimitFieldHit(FrequencyLimitHit):
+    """频率限制聊天区域命中"""
+
+    def __init__(self, field: int, weight: int):
+        self.field = field
+        self.weight = weight
+
+    def __str__(self):
+        return f"聊天区域 {self.field} 已达到频率限制 {self.weight}"
+
+
+class FrequencyLimitGlobalHit(FrequencyLimitHit):
+    """全局频率限制命中"""
+
+    def __init__(self, weight: int):
+        self.weight = weight
+
+    def __str__(self):
+        return f"全局频率限制已达到 {self.weight}"
+
+
+class InvalidConfig(Exception):
+    """无效配置"""
+
+
+class UserProfileNotFound(Exception):
+    """用户资料未找到"""
+
+
+class RebuildMessageFailed(Exception):
+    """重构消息失败"""
+
+    def __init__(self, source: Source | int, target: Group | Friend | Member | int):
+        self.source = source
+        self.target = target
+
+    def __str__(self):
+        return f"重构消息失败：<source={self.source}, target={self.target}>"
+
+
+class InvalidPermission(Exception):
+    """无效权限（细粒度）"""
+
+
+
+
+class AccountMessageBanned(Dispatchable):
+    """账号消息被封禁"""
+
+    field: int
+    """ 聊天区域，为 0 时表示私信"""
+
+    account: int
+    """ 账号 """
+
+    def __init__(self, account: int, field: int | Group | Friend):
+        self.account = account
+        self.field = 0 if isinstance(field, Friend) else int(field)
+
+    Dispatcher = BaseDispatcher
+
+async def _send_group_message(
+    target: int | Group,
+    message_chain: MessageChain,
+    account: int,
+    *,
+    quote: Source | int | MessageChain | None = None,
+) -> ActiveGroupMessage:
+    ariadne: Ariadne = Ariadne.current(account)
+    return await ariadne.send_group_message(target, message_chain, quote=quote)
+
+
+async def _send_friend_message(
+    target: int | Friend,
+    message_chain: MessageChain,
+    account: int,
+    *,
+    quote: Source | int | MessageChain | None = None,
+) -> ActiveFriendMessage:
+    ariadne: Ariadne = Ariadne.current(account)
+    return await ariadne.send_friend_message(target, message_chain, quote=quote)
+
+
+def _determine_target(
+    target: Group | Friend | int | MessageEvent, is_group: bool
+) -> Group | Friend | int:
+    if isinstance(target, MessageEvent):
+        if isinstance(target, GroupMessage):
+            target = target.sender.group
+        elif isinstance(target, FriendMessage):
+            target = target.sender
+        else:
+            raise NotImplementedError(f"不支持的消息类型：{type(target)}")
+    if isinstance(target, int) and is_group is None:
+        raise ValueError(f"无法判断 {target} 为群聊或好友")
+    return target
+
+
+def _process_message_chain(message: MessageChain | str) -> MessageChain:
+    if isinstance(message, str):
+        message = MessageChain(message)
+    if not message.display:
+        raise MessageEmpty("消息为空")
+    return message
+
+
+async def send_message(
+    target: Group | Friend | int | MessageEvent,
+    message_chain: MessageChain | str,
+    account: int,
+    *,
+    is_group: bool = None,
+    suppress: bool = True,
+    resend: bool = True,
+    quote: Source | int | None = None,
+    excluded_account: set[int] = None,
+) -> ActiveGroupMessage | ActiveFriendMessage | None:
+    """
+    发送消息
+
+    Args:
+        target (Group | Friend | int | MessageEvent): 目标
+        message_chain (MessageChain): 消息链
+        account (int): 账号
+        is_group (bool): 是否为群组
+        suppress (bool): 是否抑制异常
+        resend (bool): 是否重发
+        quote (Source | int | MessageChain | None): 消息引用
+        excluded_account (set[int]): 排除账号
+
+    Returns:
+        ActiveGroupMessage | ActiveFriendMessage | None: 主动消息
+
+    Raises:
+        AccountMuted: 账号被禁言
+        UnknownTarget: 目标不存在
+        NotImplementedError: 不支持的消息类型
+        ValueError: 无法判断目标为群聊或好友
+        MessageEmpty: 消息为空
+        RemoteException: 远程异常
+        Exception: 其他异常
+    """
+    excluded_account = excluded_account or set()
+    target = _determine_target(target, is_group)
+
+    try:
+        message_chain = _process_message_chain(message_chain)
+        if isinstance(target, Group) if is_group is None else is_group:
+            _action = _send_group_message
+        else:
+            _action = _send_friend_message
+        msg = await _action(target, message_chain, account, quote=quote)
+        assert msg.id != -1, "消息发送失败"
+        return msg
+
+    except Exception as e:
+        if isinstance(e, AccountMuted):
+            logger.error(f"账号 {account} 在聊天区域 {target} 被禁言")
+        elif isinstance(e, UnknownTarget):
+            logger.error(f"无法找到对象 {target}")
+        elif isinstance(e, AssertionError):
+            logger.error(e.args[0])
+        elif isinstance(e, MessageEmpty):
+            logger.error(e.args[0])
+            return
+        elif isinstance(e, RemoteException):
+            if "resultType=46" in str(e):
+                # 广播事件 AccountMessageBanned 供其他插件处理
+                logger.error(f"账号 {account} 发送消息功能被禁用")
+                Ariadne.current(account).broadcast.postEvent(
+                    AccountMessageBanned(
+                        account=account, field=target if is_group else 0
+                    )
+                )
+            else:
+                logger.error(f"账号 {account} 发送消息时出现异常: {e}")
+
+        # 错误重发部分，遍历所有账号，直到发送成功
+        if resend and is_group:
+            if (
+                available_account := it(PublicGroup).get_accounts(group=target)
+                - excluded_account
+            ):
+                return await send_message(
+                    target,
+                    message_chain,
+                    available_account.pop(),
+                    is_group=is_group,
+                    suppress=suppress,
+                    resend=resend,
+                    quote=quote,
+                    excluded_account=excluded_account | {account},
+                )
+            logger.error("无可用账号发送消息")
+
+        if suppress:
+            return None
+        raise e
+
+
+async def broadcast_to_owners(
+    message: MessageChain | str, account: int, suppress_on_none: bool = True
+):
+    if not message:
+        if suppress_on_none:
+            return
+        raise ValueError("消息不能为空")
+    message = MessageChain(message) if isinstance(message, str) else message
+    for owner in config.owners:
+        with contextlib.suppress(Exception):
+            await send_message(owner, message, account, is_group=False)
+
+
+
+
