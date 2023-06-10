@@ -9,3 +9,4 @@ cache/
 **b2access.json
 **shodanConf.json
 **mqttserver.json
+**/config.py

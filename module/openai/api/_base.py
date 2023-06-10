@@ -4,7 +4,6 @@ import random
 from creart import it
 from graia.saya import Channel
 
-
 from module.openai.config import OpenAIConfig
 
 from .misc import SessionContainer
