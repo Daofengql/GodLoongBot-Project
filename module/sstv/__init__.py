@@ -43,29 +43,31 @@ async def ai_handle(
     app: Ariadne,
     group: Group,
     message: MessageChain,
-    mod: MatchResult
+    mod: MatchResult,
+    source:Source,
+    quote:Quote
 ):
     
-    if not message.has(Quote):
+    if not quote:
         await app.send_group_message(
             target=group,
             message=MessageChain(
                 Plain("调用失败，您必须指定回复一条包含图像的消息")
             ),
-            quote=message.get_first(Source)
+            quote=source
 
         )
         return
-    source = message.get_first(Quote)
+
     try:
-        quote = await app.get_message_from_id(source.id)
+        quote = await app.get_message_from_id(quote.id)
     except:
         await app.send_group_message(
             target=group,
             message=MessageChain(
                 Plain("啊哦，找不到你回复的消息了")
             ),
-            quote=message.get_first(Source)
+            quote=source
 
         )
         return
@@ -75,7 +77,7 @@ async def ai_handle(
             message=MessageChain(
                 Plain("调用失败，您必须指定回复一条包含图像的消息")
             ),
-            quote=message.get_first(Source)
+            quote=source
 
         )
         return
@@ -86,7 +88,7 @@ async def ai_handle(
             message=MessageChain(
                 Plain("调用失败，图像只能为一张")
             ),
-            quote=message.get_first(Source)
+            quote=source
 
         )
         return

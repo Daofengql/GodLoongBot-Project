@@ -1,22 +1,18 @@
 import asyncio
+from io import BytesIO
 from pathlib import Path
-import PIL.Image as PImage
-from library.image.oneui_mock.elements import (
-    Banner,
-    Header,
-    MenuBox,
-    GeneralBox,
-    Column,
-    OneUIMock,
-)
+
 import aiocache
 import PIL.Image as PImage
-from io import BytesIO
 from graia.ariadne.app import Ariadne
+
+from library.image.oneui_mock.elements import (Banner, Column, GeneralBox,
+                                               Header, MenuBox, OneUIMock)
 
 PATH = Path(__file__).parent / "assets"
    
 from library.ToThread import run_withaio
+
 
 @aiocache.cached(ttl=600)
 async def genRankPic(lists,group,types:str) -> bytes:
@@ -68,3 +64,26 @@ async def genSignPic(
         img.save(b,format="PNG")
         b.seek(0)
         return b.read()
+
+
+@aiocache.cached(ttl=1800)
+async def genEventPic(
+    eventTitle:str,eventText:str,eventButtons:list,pic:bytes
+) -> bytes:
+    session = Ariadne.service.client_session
+
+
+    data = {
+        "pic":BytesIO(pic),
+        "eventText":eventText,
+        "eventTitle":eventTitle,
+        "eventButtons":",".join(eventButtons),
+        "format":"PNG"
+
+    }
+    async with session.post(f"https://v1.loongapi.com/v1/bot/MEMEs/Stellaris/Event",data=data) as resp:
+        img = PImage.open(BytesIO(await resp.content.read()))
+        b = BytesIO()
+        img.save(b,format="PNG")
+        b.seek(0)
+    return b.read()

@@ -96,7 +96,7 @@ class Modules:
         except Exception as e:
             if log:
                 logger.exception(traceback.format_exc())
-            #logger.error(e)
+            logger.error(e)
 
     async def async_require_modules(self, saya: Saya, log_exception: bool) -> NoReturn:
         """

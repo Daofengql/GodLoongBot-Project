@@ -38,7 +38,7 @@ aleater.name("预警插件")
 
 
 imgEvaConf = ApiConfig(
-    Subscription="9b2c86318477461f94529053abc6c826",
+    Subscription="",
     region="eastasia"
 )#图像审查模块继承
 
@@ -256,14 +256,3 @@ async def MemberHonorChange(
         )
     return
 
-@aleater.use(SchedulerSchema(timers.every_custom_seconds(30)))
-async def stats(app: Ariadne):
-    """
-    定时反馈状态
-    """
-    start = time.time()
-    await app.get_group_list()
-    end =  time.time()
-    ms = end - start
-    session = Ariadne.service.client_session
-    asyncio.create_task(session.get(f"https://status.loongapi.com/api/push/RDdDjCw7fi?status=up&msg=OK&ping={ms}")) 

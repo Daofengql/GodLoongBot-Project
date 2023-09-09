@@ -1,34 +1,30 @@
 
-from library.orm.table import User
-from library.Bot import bot
-from library.orm.extra import mysql_db_pool
+import asyncio
+import datetime
+import os
+import random
+import re
+import uuid
+
 from graia.ariadne.app import Ariadne
 from graia.ariadne.event.message import GroupMessage
 from graia.ariadne.message.chain import MessageChain
-from graia.ariadne.message.element import Image, At, Plain, Source
+from graia.ariadne.message.element import At, Image, Plain, Source
 from graia.ariadne.model import Group
-from graia.broadcast.interrupt import Waiter, InterruptControl
-import os
-import random
-import datetime
-import re
-import asyncio
+from graia.broadcast.interrupt import InterruptControl, Waiter
 
-from .generation import (
-    genSignPic,
-    genRankPic,
-)
-import uuid
-
+from library.Bot import bot
+from library.orm.extra import mysql_db_pool,redis_db_pool
+from library.orm.table import User
 from library.vault import dbexec
 
-
-
+from .generation import genRankPic, genSignPic, genEventPic
 
 dbexe  = dbexec()
 
 pattern = re.compile(r'[\u4e00-\u9fa5A-Za-z0-9^=?$\x22.]+')
 db = mysql_db_pool()
+redis = redis_db_pool()
 PATH = os.path.dirname(__file__) + "/assets/"
 
 bot = bot()
@@ -75,7 +71,8 @@ async def checktimeIfInNight() -> bool :
 async def DailySignin(
     app: Ariadne,
     group: Group,
-    event: GroupMessage
+    event: GroupMessage,
+    source:Source
 ) -> MessageChain:
     """进行签到获取积分"""
 
@@ -129,7 +126,7 @@ async def DailySignin(
                         }）研究出了空间飞行技术\n正在为ta申请加入星海共同体....."""
                         ),
                     ),
-                quote=event.message_chain.get_first(Source),
+                quote=source,
             ),
                 name=uuid.uuid4()
             )
@@ -300,6 +297,96 @@ async def changeMyName(
 
     return MessageChain("您在本星海的昵称已经跟具当前群昵称刷新")
         
+
+
+#接触事件
+async def Trycontact(
+    app: Ariadne, group: Group, 
+    event: GroupMessage, atmathch:At,
+    message: MessageChain, source:Source
+) -> MessageChain:
+
+    ##判断是否正在使用
+    if await checktimeIfInNight():
+        return MessageChain(
+            Plain("在当日23:50分至次日1时之间，接触功能将暂使用。系统将在后台统计数据")
+        )
+
+    sender = await dbexe.getUserProfile(event.sender.id,group.id)
+    if not sender:
+            return MessageChain("本星海中没有您的记录,无法对目标帝国进行接触操作，请使用   逐鹿星河 签到   或   .Galaxy -Signin   来注册您的账号")
+
+    target = await dbexe.getUserProfile(atmathch.target,group.id)
+    if not target:
+            return MessageChain("目标帝国未加入本星海,无法对目标帝国进行接触操作，请对方帝国使用   逐鹿星河 签到   或   .Galaxy -Signin   来注册账号后再次进行操作")
+
+
+
+    #创建REDIS链接的session对象
+    redis_client = await redis.get_redis_session()
+
+
+    #检测是否正在进行接触，是否处于接触冷却中
+    async with redis_client.client() as session:
+        stat = await session.get(f"stellairs:contact:{atmathch.target}:{event.sender.id}:{group.id}:iscontacting")
+        if stat:
+            return MessageChain(
+                Plain(
+                    f"{event.sender.name} 您当前已经有一个与{atmathch.target}帝国的接触正在运行，请勿重复尝试"
+                )
+            )
+        contactTimeCool = await session.get(f"stellairs:contact:{event.sender.id}:{group.id}:iscontactingCool")
+        if contactTimeCool:
+            ttl = await session.ttl(f"stellairs:contact:{event.sender.id}:{group.id}:iscontactingCool")
+            return MessageChain(
+                Plain(
+                    f"{event.sender.name} 您当前的接触功能正在冷却，还剩{ttl}秒,请勿重复尝试"
+                )
+            )
+
+
+    #生成一个随机的等待时长，并做出提示
+    rand_time = random.randint(10,40)
+
+    await app.send_group_message(
+        target=group,
+        message=MessageChain(
+            Plain(
+                f"正在开始建立与{atmathch.target}帝国的接触，准备进行接触流程，请等待：{rand_time}秒"
+            )
+        ),
+        quote=source
+    )
+
+    #写入REDIS数据库当前的接触功能冷却状态
+    async with redis_client.client() as session:
+        await session.set(f"stellairs:contact:{atmathch.target}:{event.sender.id}:{group.id}:iscontacting",1,rand_time+30)
+        await session.set(f"stellairs:contact:{event.sender.id}:{group.id}:iscontactingCool",1,rand_time+30+20000)
+
+    #执行虚拟等待
+    await asyncio.sleep(rand_time)
+    #####
+    #开始生成接触事件图片
+    #核心代码开始
+    #####
+    
+
+    titlepic = b""
+    eventTEXT = f"{event.sender.name} 您当前已与位于 位面 {group.id} 上的帝国 {atmathch.target} 建立了外交通讯。"
+    energy = random.randint(-100,300)
+    pic = await genEventPic(
+        "信号传输接入",
+        eventTEXT,
+        [
+            f"那是极好的   能量币{energy}"
+        ],
+        titlepic
+        )
+
+
+
+
+    return MessageChain(Image(data_bytes=pic))
 
 
 

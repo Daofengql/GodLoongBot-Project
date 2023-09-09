@@ -10,6 +10,6 @@
     "description": "",
     "dependency": null,
     "loaded": true,
-    "override_default": null,
-    "override_switch": null
+    "override_default": false,
+    "override_switch": true
 }

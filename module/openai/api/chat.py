@@ -105,7 +105,7 @@ class ChatCompletion(OpenAIAPIBase):
         node_id: str = None,
         cache_delta: int = 0,
         *,
-        model: str = "gpt-3.5-turbo",
+        model: str = "gpt-3.5-turbo-16k",
         temperature: float = None,
         top_p: float = 1,
         n: int = 1,

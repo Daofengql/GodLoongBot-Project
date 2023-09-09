@@ -6,7 +6,7 @@ channel = Channel.current()
 
 
 class OpenAIConfig:
-    api_keys: list[str] = ["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","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"]
+    api_keys: list[str] = [""]
     """ OpenAI API Key """
 
     gpt3_cache: int = 2
@@ -21,7 +21,7 @@ class OpenAIConfig:
     dalle_switch: bool = False
     """ DallE 开关"""
 
-    dalle_size: str = "256x256"
+    dalle_size: str = "1024x1024"
     """ DallE 图片大小 """
 
     chatgpt_switch: bool = True

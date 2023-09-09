@@ -7,6 +7,7 @@ from urllib import parse
 
 import aiocache
 import aiohttp
+from io import BytesIO
 from bs4 import BeautifulSoup
 from graia.ariadne.app import Ariadne
 from graia.ariadne.event.message import GroupMessage
@@ -14,8 +15,8 @@ from graia.ariadne.message.chain import MessageChain
 from graia.ariadne.model import Group
 from graia.broadcast.interrupt import InterruptControl, Waiter
 from lxml import etree
-
-from library.b2 import bucket, guess_content_type
+from copy import deepcopy
+from library.minio import client, guess_content_type,minio_conf
 from library.image.oneui_mock.elements import (Banner, Column, GeneralBox,
                                                Header, OneUIMock)
 from library.ToThread import run_withaio
@@ -141,10 +142,9 @@ async def getBT(app:Ariadne,group:Group,quote,page):
 
     upath = Path(str(datetime.datetime.today().year)) /  str(datetime.datetime.today().month) / str(datetime.datetime.today().day) / str(group.id)
     strfile2 = upath / f"{page}.zip"
-    strfile = PATH / strfile2
-    os.makedirs(PATH / upath , exist_ok=True)
-    
-    zip_file = zipfile.ZipFile(strfile, 'w', zipfile.ZIP_DEFLATED)
+
+    zip = BytesIO()
+    zip_file = zipfile.ZipFile(zip, 'w', zipfile.ZIP_DEFLATED)
 
     for filename,downloadURL in files:
         await asyncio.sleep(0.5)
@@ -152,8 +152,13 @@ async def getBT(app:Ariadne,group:Group,quote,page):
         zip_file.writestr(filename,data)
     zip_file.close()
 
-    await asyncio.to_thread(bucket.upload_local_file,strfile,str("temp/bt/"/strfile2))
+    zip = zip.getvalue()
+    zip_file = BytesIO(zip)
+    
 
-    os.remove(strfile)
+    await asyncio.to_thread(client.put_object,minio_conf["bucket"],str("temp/bt/"/strfile2),zip_file,len(zip))
+
+
+
     return "https://objectstorage.global.loongapi.com/GodLoongBot" + parse.quote(f"/temp/bt/{strfile2}")
     

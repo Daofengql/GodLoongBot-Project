@@ -83,7 +83,7 @@ async def pingip(arg)->MessageChain:
         except:addr = city = "查询失败"
     else:addr = city = "查询失败"
 
-    column = Column(Banner("Ping查询"), Header("查询返回", "基于位于圣何塞的机器人检测网络返回数据"))
+    column = Column(Banner("Ping查询"), Header("查询返回", "基于位于中国湖北十堰的机器人检测网络返回数据"))
     box = GeneralBox()
     box.add(f"IP/域名：{pingw['host']}","")
     box.add(f"响应ip：{pingw['ip']}","")
@@ -117,7 +117,7 @@ async def tcpingip(host,port)->MessageChain:
         except:addr = city = "查询失败"
     else:addr = city = "查询失败"
     
-    column = Column(Banner("Tcping查询"), Header("查询返回", "基于位于东京的机器人检测网络返回数据"))
+    column = Column(Banner("Tcping查询"), Header("查询返回", "基于位于中国湖北十堰的机器人检测网络返回数据"))
     box = GeneralBox()
     box.add(f"IP/域名：{host}","")
     box.add(f"指向ip：{ip_address}","")

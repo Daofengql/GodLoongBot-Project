@@ -76,9 +76,9 @@ ai.description("AI计算")
 
 
 
-conf = ApiConfig(Subscription="400c559601f943e6ba37932cfbcfa6b4",region="eastasia")
-speech = Speech(Subscription="2924f4a7a95b406482ac028e719f8af3",region="eastasia")
-trans = Translate(Subscription="1eae2fe00c62411ab7360c4e6a42124d",region="eastasia")
+conf = ApiConfig(Subscription="",region="eastasia")
+speech = Speech(Subscription="",region="eastasia")
+trans = Translate(Subscription="",region="eastasia")
 azCV = ComputerVisual.ComputerVisual(config=conf)
 
 @ai.use(

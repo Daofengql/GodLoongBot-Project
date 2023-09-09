@@ -72,8 +72,11 @@ async def etmod(
             ),
             quote=source
         )
+
         choice = await WaitForResp(app,group,event,message)
         choice  = choice.display
+
+        
         try:
             choice = int(choice)
         except:
@@ -91,8 +94,8 @@ async def etmod(
                 quote=source
             )
             return
-        
-        ret = await getBT(app,group,message.get_first(Source),pages[int(choice)-1])
+
+        ret = await getBT(app,group,source,pages[int(choice)-1])
 
     else:
         await app.send_group_message(
@@ -476,44 +479,3 @@ async def ettank(
                 quote=source
             )
 
-
-"""
-@et.use(ListenerSchema(
-        listening_events=[GroupMessage],
-        inline_dispatchers=[
-            Twilight(
-                [
-                    RegexMatch(r"[a-zA-z]+://twitter.com/\w+/status/[0-9]+(.*)") @ "url"
-                ]
-            )
-        ]
-    )
-)
-
-async def ettank(
-    app: Ariadne,
-    message: MessageChain,
-    group: Group,
-    event: GroupMessage,
-    source: Source,
-    url: RegexResult,
-):  
-
-    session = Ariadne.service.client_session
-    data = {
-        "url":url.result.display,
-        "ifRAW":True
-    }
-    async with session.post("https://v1.loongapi.com/v1/tool/playwright/firefox",data=data) as resp:
-        if resp.status == 200:
-            pagedata = (await resp.json())["result"]
-        else:
-            print(resp.status)
-    
-    
-    html = etree.HTML(pagedata)
-    html_data:list[etree._Element] = html.xpath('/html/body/div[1]/div/div/div[2]/main/div/div/div/div[1]/div/section/div/div/div[1]/div/div/div/article/div/div/div/div[3]/div[3]')
-    for d  in html_data:
-        print(d.text)
-        
-    """

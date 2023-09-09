@@ -14,22 +14,17 @@ from graia.ariadne.message.parser.twilight import (ArgResult, ArgumentMatch,
                                                    UnionMatch, WildcardMatch)
 from graia.saya import Channel
 from graiax.shortcut import decorate, dispatch, listen
-from kayaku import create
 from loguru import logger
 
-from library.depend import (Blacklist,FunctionCall, Permission,
-                            Switch)
+from library.depend import Blacklist, FunctionCall, Permission, Switch
 from library.depend.chain import QuotingOrAtMe
 from library.model import UserPerm
-
-from .api.locksmith import LockSmith
-
-
 from module.openai.config import OpenAIConfig
 from module.openai.help import chat_help
 from module.openai.impl import ChatSessionContainer
 
 from .api.dispatcher import PrefixMatch
+from .api.locksmith import LockSmith
 from .api.misc import SessionContainer
 from .message import send_message
 
@@ -73,7 +68,7 @@ async def call_dalle(prompt: str) -> MessageChain:
     logger.info(f"[OpenAI:DALL-E] Generating image: {prompt}")
 
     def get_url() -> str:
-        response = openai.Image.create(prompt=prompt, n=1, size="256x256")
+        response = openai.Image.create(prompt=prompt, n=1, size="1024x1024")
         return response["data"][0]["url"]
 
     try:
@@ -104,7 +99,7 @@ async def call_dalle(prompt: str) -> MessageChain:
     FunctionCall.record(channel.module),
 )
 async def openai_dalle(app: Ariadne, event: GroupMessage, prompt: RegexResult):
-    cfg: OpenAIConfig = create(OpenAIConfig)
+    cfg: OpenAIConfig = OpenAIConfig()
     if not cfg.dalle_switch:
         return await send_message(event, MessageChain("DallE 功能未开放"), app.account)
     if prompt := prompt.result.display:
@@ -126,7 +121,7 @@ _GPT_MEMORY: dict[str, str] = {}
 
 async def call_gpt3(prompt: str, field: int, sender: int, name: str) -> MessageChain:
     key = f"{field}-{sender}"
-    cfg: OpenAIConfig = create(OpenAIConfig)
+    cfg: OpenAIConfig = OpenAIConfig()
     async with it(LockSmith).get(f"{channel.module}:gpt3.{key}"):
         logger.info(f"[OpenAI:GPT3] Generating text for {key}: {prompt}")
         _GPT_CACHE.setdefault(key, [])
@@ -180,7 +175,7 @@ async def call_gpt3(prompt: str, field: int, sender: int, name: str) -> MessageC
     FunctionCall.record(channel.module),
 )
 async def openai_gpt3(app: Ariadne, event: GroupMessage, prompt: RegexResult):
-    cfg: OpenAIConfig = create(OpenAIConfig)
+    cfg: OpenAIConfig = OpenAIConfig()
     if not cfg.gpt3_switch:
         return await send_message(event, MessageChain("GPT-3 功能未开放"), app.account)
     if prompt := prompt.result.display:
@@ -217,7 +212,7 @@ async def openai_gpt3(app: Ariadne, event: GroupMessage, prompt: RegexResult):
     FunctionCall.record(channel.module),
 )
 async def flush_gpt3_cache(app: Ariadne, event: GroupMessage, scope: RegexResult):
-    cfg: OpenAIConfig = create(OpenAIConfig)
+    cfg: OpenAIConfig = OpenAIConfig()
     if not cfg.gpt3_switch:
         return await send_message(event, MessageChain("GPT-3 功能未开放"), app.account)
     mapping: dict[str, str] = {"group": "群组", "all": "所有", "user": "用户"}
@@ -275,7 +270,7 @@ async def flush_gpt3_cache(app: Ariadne, event: GroupMessage, scope: RegexResult
     FunctionCall.record(channel.module),
 )
 async def gpt3_memorize(app: Ariadne, event: GroupMessage, content: RegexResult):
-    cfg: OpenAIConfig = create(OpenAIConfig)
+    cfg: OpenAIConfig = OpenAIConfig()
     if not cfg.gpt3_switch:
         return await send_message(event, MessageChain("GPT-3 功能未开放"), app.account)
     if content := content.result.display:

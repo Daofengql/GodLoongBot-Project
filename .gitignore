@@ -6,7 +6,6 @@ log/
 .vscode/
 **/mc
 cache/
-**b2access.json
+**minio.json
 **shodanConf.json
 **mqttserver.json
-**/config.py

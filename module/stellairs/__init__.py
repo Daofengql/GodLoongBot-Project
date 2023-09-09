@@ -1,35 +1,25 @@
-from library.config import config
-from graia.ariadne.app import Ariadne
-from graia.ariadne.message.parser.twilight import (
-    Twilight,
-    UnionMatch,
-    MatchResult,
-    WildcardMatch,
-    FullMatch
-)
-
-from graia.saya import Channel
-from graia.ariadne.event.message import GroupMessage
-from graia.ariadne.event.mirai import GroupRecallEvent
-from graia.ariadne.message.chain import MessageChain
-from graia.saya.builtins.broadcast import ListenerSchema
-from graia.broadcast.interrupt import Waiter, InterruptControl
-from library.image.oneui_mock.elements import *
-from graia.ariadne.message.element import Image, At, Plain, Source
-from graia.ariadne.model import Group
-import os
-from library.orm.extra import mysql_db_pool
-from .utils import (
-    DailySignin,
-    getGroupRank,
-    getMyInfo,
-    worShip,
-    changeMyName,
-    convertAssets
-)
-import aiofiles
 import asyncio
+import os
 import uuid
+
+import aiofiles
+from graia.ariadne.app import Ariadne
+from graia.ariadne.event.message import GroupMessage
+from graia.ariadne.message.chain import MessageChain
+from graia.ariadne.message.element import Image, Plain, Source,At
+from graia.ariadne.message.parser.twilight import (MatchResult, Twilight,
+                                                   UnionMatch, WildcardMatch,
+                                                   ElementMatch)
+from graia.ariadne.model import Group
+from graia.saya import Channel
+from graia.saya.builtins.broadcast import ListenerSchema
+
+from library.config import config
+from library.image.oneui_mock.elements import *
+from library.orm.extra import mysql_db_pool
+
+from .utils import (DailySignin, changeMyName, convertAssets, getGroupRank,
+                    getMyInfo, worShip,  Trycontact)
 
 stellairs = Channel.current()
 
@@ -102,7 +92,7 @@ async def stellairs_handle(
 
     #签到功能
     if func in ("-Signin", "获取今日能量币", "签到"):
-        ret = await DailySignin(app, group, event)
+        ret = await DailySignin(app, group, event,source)
 
     #获取用户自身信息
     elif func in ("-MyInfo", "我的信息"):   
@@ -150,3 +140,35 @@ async def stellairs_handle(
         ),
             name=uuid.uuid4()
             )
+
+
+
+@stellairs.use(
+    ListenerSchema(
+        listening_events=[GroupMessage],
+        inline_dispatchers=[
+            Twilight(
+                [
+                    UnionMatch("接触").help("主控制器"),
+                    ElementMatch(At) @ "atMatch"
+                ]
+            )
+        ],
+    )
+)
+async def stellairs_event1(
+    app: Ariadne,
+    group: Group,
+    event: GroupMessage,
+    message: MessageChain,
+    source:Source,
+    atMatch: MatchResult
+): 
+    atMatch: At = atMatch.result
+    message = await Trycontact(app,group,event,atMatch,message,source)
+
+    await app.send_group_message(
+            group, 
+            message,
+            quote=source
+        )

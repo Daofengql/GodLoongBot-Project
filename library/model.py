@@ -204,6 +204,7 @@ class NConfig(BaseModel):
 
     name: str = ""
     docs: str = ""
+    redis: str = ""
     num: int = 0
     account: int = 0
     env: str = ""

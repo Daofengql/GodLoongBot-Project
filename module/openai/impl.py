@@ -3,11 +3,18 @@ from datetime import datetime, timedelta
 from graia.ariadne import Ariadne
 from graia.ariadne.event.message import FriendMessage, GroupMessage
 from graia.ariadne.message.chain import MessageChain, Quote
-from graia.ariadne.message.element import Forward, ForwardNode
+from graia.ariadne.message.element import Forward, ForwardNode,Image,Plain
+
+import aiohttp
 
 from module.openai.api.chat import ChatCompletion
 
+from library.md2img import M2I
+
 from .message import send_message
+
+
+m2i = M2I()
 
 Message = GroupMessage | FriendMessage
 """监听的消息类型"""
@@ -40,7 +47,18 @@ class ChatSession:
         (user_id, _), (reply_id, reply_content) = await self.instance.send(
             content, self.mapping.get(quote.id) if quote else quote
         )
-        active = await send_message(event, MessageChain(reply_content), app.account)
+
+
+        if len(reply_content) >200 or "`" in reply_content:
+            async with aiohttp.ClientSession() as session:
+                repreply_img = await m2i.GetChromeTextFromRemoteServer(content=reply_content,session=session)
+                uid = await m2i.genWEBuid(reply_content)
+
+                mess =  [Image(data_bytes=repreply_img),Plain("\n在线查看(链接1小时有效)："),Plain(f"https://web-bot.loongapi.com/md2img/{uid}")]
+        else:
+            mess = [Plain(reply_content)]
+
+        active = await send_message(event, MessageChain(*mess), app.account)
         if user_id and reply_id:
             self.mapping[event.id] = user_id
             self.mapping[active.id] = reply_id

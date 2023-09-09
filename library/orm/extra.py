@@ -1,6 +1,20 @@
+from redis import asyncio as aioredis
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.asyncio import  AsyncSession, create_async_engine
+
 from library.config import config
+
+
+class redis_db_pool(object):
+    def __init__(self) -> None:
+        pass
+
+    async def get_redis_session(self) ->aioredis.Redis:
+    
+        redis:aioredis.Redis = await aioredis.from_url(config.redis)
+        
+
+        return redis
 
 class mysql_db_pool(object):
     def __init__(self) -> None:

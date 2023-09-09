@@ -330,36 +330,6 @@ async def MLEK(app: Ariadne, event: MemberLeaveEventKick):
             )
         )
 
-"""
-#被禁言
-@g.use(ListenerSchema(listening_events=[MemberMuteEvent]))
-async def MME(app: Ariadne, event: MemberMuteEvent):
-    if event.member.id == config.account:return
-    await app.send_group_message(
-        event.member.group,
-        MessageChain(
-            f"{event.member.id}被禁言了{event.duration}秒哦，大家要谨言慎行"
-            )
-        )
-        
-#被解除禁言
-@g.use(ListenerSchema(listening_events=[MemberMuteEvent]))
-async def MME(app: Ariadne, event: MemberMuteEvent):
-    if event.member.id == config.account:
-        await app.send_group_message(
-            event.member.group,
-            MessageChain(
-                f"啊哈哈哈，我又回来了（管理员高抬贵手~）"
-                )
-            )
-        return
-    await app.send_group_message(
-        event.member.group,
-        MessageChain(
-            f"{event.member.id}被禁言了{event.duration}秒哦，大家要谨言慎行"
-            )
-        )
-"""        
 
 from graia.ariadne.model import MemberInfo
 @g.use(ListenerSchema(
@@ -388,11 +358,15 @@ async def rename_Handle(
 
     
     for tgroup in await app.get_group_list():
-        await asyncio.sleep(10)
-        await app.modify_member_info(
-            member=config.account,
-            info=MemberInfo(
-                name=param
-            ),
-            group=tgroup
-        )
+        
+        try:
+            await asyncio.sleep(10)
+            await app.modify_member_info(
+                member=config.account,
+                info=MemberInfo(
+                    name=param
+                ),
+                group=tgroup
+            )
+        except:
+            pass
